@@ -1,8 +1,12 @@
 # Project state
 
-State version: 7. Updated: 2026-10-25.
+State version: 8. Updated: 2026-10-25.
 
 Public repository: https://github.com/mrmcgrewx/rivet-lang
+
+## Public documentation
+
+The README now serves as the developer-facing project overview: motivation, a complete language example, setup, standalone console/HTTP programs, workbench, compiler/runtime responsibilities, CLI reference, measured performance, tests, and current scope. Development history remains in the linked project records. Documentation verification checked local links and section anchors, matched the inline program to the committed Hello example, and compiled/ran it with the documented output and inspection files. This change does not alter implementation behavior.
 
 ## Current implementation
 
