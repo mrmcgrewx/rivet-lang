@@ -206,6 +206,12 @@ Native profiles offer explicit tradeoffs: default `size` uses Clang `-Oz` plus l
 
 The [native fuel optimization](docs/NATIVE-OPTIMIZATION-RESULTS.md) reduced balanced 1000 + 1000 median search from **559.45 to 104.14 ns/query** on an Apple M1 Pro, a **5.37× improvement** in the same warmed preloaded benchmark. Fresh C and Python controls measured 34.47 and 1443.81 ns/query: C's advantage narrowed from about 16× to **3.02×**. The compiler makes the existing instruction-budget check visible to LLVM; all safety limits and failure ordering remain. All eight measured input families improved by 4.56×–5.57×. Whole-process peak RSS for the balanced Rivet case stayed at 1.406 MiB; the executable grew by 16 bytes and median native build time rose by 22 ms. Search timing, process latency and RSS are separate scopes. [Original measurements](docs/MEDIAN-BENCHMARK-RESULTS.md) remain historical evidence. These results do not establish performance across other algorithms or language-wide superiority.
 
+## Same-model agent experiment
+
+Nine fresh agents independently solved Two Sum, Add Two Numbers and Median in Rivet, C and Rust using the same model and reasoning setting. **All nine passed their first submission; each language passed 878 withheld cases with zero retries.** Rivet agents authored new binary source from the format specification without reading existing solutions.
+
+The [full experiment report](docs/AGENT-EXPERIMENT-RESULTS.md) compares actual token counters, runtime and per-process peak memory, with frozen sources and reproducible tests. C led the large Two Sum and list-addition workloads; Rust led balanced median search and used the fewest output tokens. Rivet beat Rust on large Two Sum but had substantial fixed map overhead on tiny inputs. Its runtime checks stayed enabled. This is one solution per language/problem pair, so it establishes a working authoring path, not a general language ranking or reliability advantage.
+
 ## Scope
 
 RVB2 supports branches and loops within one computation; it does not yet support user-defined functions, recursion, persistent storage, or HTTP request-dependent values. RVB1 HTTP responses are computed at startup. Source is limited to 64 KiB and 256 instructions. RVB2 additionally bounds execution to one million instructions, arrays/maps/list chains to 10,000 elements/entries/nodes, runtime input to 256 KiB and logical cumulative allocations to 64 MiB. [Exact resource bounds](docs/LANGUAGE.md#resource-limits) are documented separately.
@@ -222,6 +228,7 @@ HTTP is a local experimental subset: IPv4 loopback, exact GET routes, sequential
 - [Comparative benchmark method](docs/MEDIAN-BENCHMARK-METHOD.md)
 - [Measured runtime and memory results](docs/MEDIAN-BENCHMARK-RESULTS.md)
 - [Native optimization: before/after results](docs/NATIVE-OPTIMIZATION-RESULTS.md)
+- [Same-model agent authoring: correctness, tokens, runtime and memory](docs/AGENT-EXPERIMENT-RESULTS.md)
 - [Capability and performance roadmap](docs/ROADMAP.md)
 - [Language semantics](docs/LANGUAGE.md)
 - [Architecture and runtime boundary](docs/ARCHITECTURE.md)

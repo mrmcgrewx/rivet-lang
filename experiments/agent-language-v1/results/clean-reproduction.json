@@ -1,0 +1,71 @@
+{
+  "checkout_commit": "eb39fdcc02da90bc983193c823bf0f9c2f59aa4d",
+  "holdouts": [
+    {
+      "id": "add_two_numbers-c",
+      "source_sha256": "90ddd47532cbe36d97d75cd2e1b258709d5175193f0a9903dd2c3f6b15a64762",
+      "correctness_pass": true,
+      "passed": 264,
+      "total": 264
+    },
+    {
+      "id": "add_two_numbers-rivet",
+      "source_sha256": "02b51f34566b39371e5165913cffb1a77b6e8b46488a253d9ad7ff5737c3919b",
+      "correctness_pass": true,
+      "passed": 264,
+      "total": 264
+    },
+    {
+      "id": "add_two_numbers-rust",
+      "source_sha256": "0290d8c31846822280e19cf7373055ceb09fa00005a18b3f26618471ff51e5d4",
+      "correctness_pass": true,
+      "passed": 264,
+      "total": 264
+    },
+    {
+      "id": "median-c",
+      "source_sha256": "a9648f6a224bc56450c52e1342082f68730fb615a7451251b37d9d0c6b60dd59",
+      "correctness_pass": true,
+      "passed": 358,
+      "total": 358
+    },
+    {
+      "id": "median-rivet",
+      "source_sha256": "7d623143e75451bfb686d7824cd9ccc522551a100dd93ae7712033d657805565",
+      "correctness_pass": true,
+      "passed": 358,
+      "total": 358
+    },
+    {
+      "id": "median-rust",
+      "source_sha256": "7d299c967d816f7499a86657ef9fd212b2deb63ed6201c004c350aff50baebcf",
+      "correctness_pass": true,
+      "passed": 358,
+      "total": 358
+    },
+    {
+      "id": "two_sum-c",
+      "source_sha256": "378da8e8a2a7b61ed38d7d0647351923706b6699a0169916eb818fedb5ecdba2",
+      "correctness_pass": true,
+      "passed": 256,
+      "total": 256
+    },
+    {
+      "id": "two_sum-rivet",
+      "source_sha256": "57dd96a1d129fcb1450938ba7bc5399d4e9dda9b64fac4322f2a9da2915d979b",
+      "correctness_pass": true,
+      "passed": 256,
+      "total": 256
+    },
+    {
+      "id": "two_sum-rust",
+      "source_sha256": "dd8c87f542d670727cf948d57e0d0121ae4ceba0cb3fd1e0469737ccf01d9f3e",
+      "correctness_pass": true,
+      "passed": 256,
+      "total": 256
+    }
+  ],
+  "boundary_verification_records": 300,
+  "raw_performance_samples_repeated": 0,
+  "note": "Clean reproduction reran all holdouts, local UBSan, Rivet reference checks and native/preloaded pools. It did not rerun performance timing."
+}
