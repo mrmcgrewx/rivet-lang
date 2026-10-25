@@ -80,6 +80,100 @@ def two_sum():
     return b'RVB\0' + pack('<HHHBBI', 2, 0, len(records), 3, 0, len(body)) + body
 
 
+def add_two_numbers():
+    # Real linked-node handles: left, right, reversed digits, result, and next.
+    # Other registers hold carry/constants/lengths/comparisons/current digits.
+    types = bytes([7, 7, 7, 7, 2, 2, 2, 2, 2, 2, 2, 2, 3, 2, 2, 7, 2])
+    records, labels, fixups = [], {}, []
+
+    def mark(name):
+        labels[name] = len(records)
+
+    def op(code, result, *operands):
+        payload = bytearray()
+        for operand in operands:
+            if isinstance(operand, str):
+                fixups.append((len(records), len(payload), operand))
+                operand = 0
+            payload += pack('<H', operand)
+        records.append((code, result, payload))
+
+    def const(destination, value):
+        records.append((0x02, 2, bytearray(pack('<Hq', destination, value))))
+
+    op(0x65, 7, 0)  # Read two generic count-prefixed linked lists.
+    op(0x65, 7, 1)
+    op(0x60, 7, 2)
+    op(0x60, 7, 3)
+    for destination, value in [(4, 0), (5, 0), (6, 10), (7, 1), (8, -1), (9, 101)]:
+        const(destination, value)
+    op(0x66, 2, 10, 0)
+    op(0x66, 2, 11, 1)
+    for length in [10, 11]:
+        op(0x15, 3, 12, 5, length)  # 0 < length < 101.
+        op(0x54, 0, 12)
+        op(0x15, 3, 12, length, 9)
+        op(0x54, 0, 12)
+
+    mark('loop')
+    op(0x62, 3, 12, 0)
+    op(0x51, 0, 12, 'test_right', 'digit')
+    mark('test_right')
+    op(0x62, 3, 12, 1)
+    op(0x51, 0, 12, 'test_carry', 'digit')
+    mark('test_carry')
+    op(0x14, 3, 12, 4, 5)
+    op(0x51, 0, 12, 'reverse', 'digit')
+    mark('digit')
+    op(0x16, 2, 13, 4)  # sum = carry.
+    for name, cursor, length in [('left', 0, 10), ('right', 1, 11)]:
+        op(0x62, 3, 12, cursor)
+        op(0x51, 0, 12, f'{name}_done', f'{name}_value')
+        mark(f'{name}_value')
+        op(0x63, 2, 16, cursor)
+        op(0x15, 3, 12, 8, 16)  # Assert digit >= 0 and < 10 in Rivet.
+        op(0x54, 0, 12)
+        op(0x15, 3, 12, 16, 6)
+        op(0x54, 0, 12)
+        op(0x64, 7, 15, cursor)
+        op(0x62, 3, 12, 15)
+        op(0x51, 0, 12, f'{name}_last', f'{name}_advance')
+        mark(f'{name}_last')
+        op(0x15, 3, 12, 7, length)
+        op(0x51, 0, 12, f'{name}_nonzero', f'{name}_advance')
+        mark(f'{name}_nonzero')
+        op(0x15, 3, 12, 5, 16)  # Multi-node input's final digit cannot be zero.
+        op(0x54, 0, 12)
+        mark(f'{name}_advance')
+        op(0x11, 2, 13, 13, 16)
+        op(0x16, 7, cursor, 15)
+        mark(f'{name}_done')
+    op(0x18, 2, 14, 13, 6)  # digit = sum % 10.
+    op(0x17, 2, 4, 13, 6)   # carry = sum / 10.
+    op(0x61, 7, 2, 14, 2)   # Prepend to temporary result.
+    op(0x50, 0, 'loop')
+
+    # Reverse the temporary immutable chain using Rivet node operations.
+    mark('reverse')
+    op(0x62, 3, 12, 2)
+    op(0x51, 0, 12, 'return', 'reverse_node')
+    mark('reverse_node')
+    op(0x63, 2, 16, 2)
+    op(0x61, 7, 3, 16, 3)
+    op(0x64, 7, 2, 2)
+    op(0x50, 0, 'reverse')
+    mark('return')
+    op(0x53, 0, 3)
+
+    # Resolve writer-local labels to numeric PCs; no names enter the source file.
+    for index, offset, label in fixups:
+        records[index][2][offset:offset + 2] = pack('<H', labels[label])
+    body = pack('<H', len(types)) + types
+    body += b''.join(record(code, result, payload) for code, result, payload in records)
+    body += pack('<H', 0)
+    return b'RVB\0' + pack('<HHHBBI', 2, 0, len(records), 3, 0, len(body)) + body
+
+
 def main():
     # Hand-authored source bytes: three records (text, text, concat), console r2.
     hello = bytes.fromhex(
@@ -97,7 +191,7 @@ def main():
         obj(('answer', 2), ('ready', 6)), obj(('details', 7), ('message', 5)),
     ], 2, http(0, '/computed', 200, 8))
     for name, source in [('hello', hello), ('server', server), ('computed', computed),
-                         ('two-sum', two_sum())]:
+                         ('two-sum', two_sum()), ('add-two-numbers', add_two_numbers())]:
         path = ROOT / 'examples' / f'{name}.rvb'
         path.write_bytes(source)
         print(f'{path.relative_to(ROOT)}: {len(source)} binary source bytes')

@@ -329,6 +329,74 @@ test("compute runtime input errors recover without rebuilding or modifying binar
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
 });
 
+test("Add Two Numbers uses two digit lists across published and hundred-digit carry cases", async ({ page }) => {
+  const builds = [];
+  page.on("request", request => {
+    if (request.url().endsWith("/api/build")) builds.push(request);
+  });
+  await page.getByRole("button", { name: "Add Two Numbers", exact: true }).click();
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
+  const input = page.getByRole("textbox", { name: "Runtime input", exact: true });
+  await expect(input).toHaveValue("3 2 4 3 3 5 6 4\n");
+  await expect(page.locator("#add-two-numbers-input-help")).toBeVisible();
+  await expect(page.locator("#add-two-numbers-input-help")).toContainText("ones place");
+  await expect(page.locator("#two-sum-input-help")).toBeHidden();
+  await expect(input).toHaveAttribute("aria-describedby", "runtime-input-help add-two-numbers-input-help");
+  const bytes = await fixture("add-two-numbers");
+  expect((await downloadBytes(page, "Download binary source")).bytes).toEqual(bytes);
+  const compiled = await build(page);
+  const cases = [
+    ["3 2 4 3 3 5 6 4\n", [7, 0, 8]],
+    ["1 0 1 0\n", [0]],
+    ["7 9 9 9 9 9 9 9 4 9 9 9 9\n", [8, 9, 9, 9, 0, 0, 0, 1]],
+    [`100 ${Array(100).fill(9).join(" ")} 1 1\n`, [...Array(100).fill(0), 1]],
+  ];
+  for (const [data, answer] of cases) {
+    await input.fill(data);
+    await expect(page.locator("#source-badge")).toHaveText("Built");
+    await expect(page.getByLabel("Executable path")).toHaveText(compiled.artifact.path);
+    const pending = page.waitForRequest(request => request.url().endsWith("/api/run"));
+    await page.getByRole("button", { name: "Run executable", exact: true }).click();
+    expect((await pending).postDataJSON()).toEqual({ build_id: compiled.id, input: data });
+    await expect(page.getByLabel("Program output")).toHaveText(`${JSON.stringify(answer)}\n`);
+    await expect(page.locator("#console-detail")).toContainText(`Build #${compiled.id}`);
+    await expect(page.locator("#console-detail")).toContainText("Exit code 0");
+    await expect(input).toBeEnabled();
+  }
+  expect(builds).toHaveLength(1);
+  expect((await downloadBytes(page, "Download binary source")).bytes).toEqual(bytes);
+  await page.getByRole("combobox", { name: "Source view", exact: true }).selectOption("hex");
+  const hex = page.getByRole("textbox", { name: "Binary source bytes", exact: true });
+  expect(Buffer.from((await hex.inputValue()).replace(/\s/g, ""), "hex")).toEqual(bytes);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator("#add-two-numbers-input-help")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+});
+
+test("Add Two Numbers input assertions recover on the same build and retain other example guidance", async ({ page }) => {
+  await page.getByRole("button", { name: "Add Two Numbers", exact: true }).click();
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
+  const input = page.getByRole("textbox", { name: "Runtime input", exact: true });
+  const compiled = await build(page);
+  await input.fill("1 12 1 0\n");
+  await page.getByRole("button", { name: "Run executable", exact: true }).click();
+  await expect(page.locator("#diagnostics")).toContainText("assertion failed");
+  await expect(page.locator("#source-badge")).toHaveText("Built");
+  await expect(input).toBeEnabled();
+  await input.fill("3 2 4 3 3 5 6 4\n");
+  await page.getByRole("button", { name: "Run executable", exact: true }).click();
+  await expect(page.getByLabel("Program output")).toHaveText("[7,0,8]\n");
+  await expect(page.locator("#diagnostics li")).toHaveCount(0);
+  await expect(page.getByLabel("Executable path")).toHaveText(compiled.artifact.path);
+  expect((await downloadBytes(page, "Download binary source")).bytes).toEqual(await fixture("add-two-numbers"));
+  await page.getByRole("button", { name: "Two Sum", exact: true }).click();
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
+  await expect(input).toHaveValue("4 2 7 11 15 9\n");
+  await expect(page.locator("#two-sum-input-help")).toBeVisible();
+  await expect(page.locator("#add-two-numbers-input-help")).toBeHidden();
+  await expect(input).toHaveAttribute("aria-describedby", "runtime-input-help two-sum-input-help");
+});
+
 test("literal editor preserves exact i64 values in bytes and HTTP output", async ({ page }) => {
   await openBytes(page, intServer(0), "integer.rvb");
   await editLiteral(page, 0, "9223372036854775807");

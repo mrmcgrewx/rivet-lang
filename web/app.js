@@ -253,9 +253,14 @@
     $("runtime-input-panel").hidden = kind !== "compute";
     $("runtime-input").disabled = busy;
     $("runtime-input").setAttribute("aria-invalid", String(inputTooLarge));
-    $("two-sum-input-help").hidden = state.selectedExample !== "two-sum";
-    $("runtime-input").setAttribute("aria-describedby", state.selectedExample === "two-sum"
-      ? "runtime-input-help two-sum-input-help" : "runtime-input-help");
+    const exampleHelp = {
+      "two-sum": "two-sum-input-help",
+      "add-two-numbers": "add-two-numbers-input-help",
+    }[state.selectedExample];
+    for (const id of ["two-sum-input-help", "add-two-numbers-input-help"])
+      $(id).hidden = id !== exampleHelp;
+    $("runtime-input").setAttribute("aria-describedby",
+      `runtime-input-help${exampleHelp ? ` ${exampleHelp}` : ""}`);
     $("runtime-input-size").textContent = `${inputBytes.toLocaleString()} bytes · 256 KiB maximum`;
     $("runtime-input-size").classList.toggle("too-large", inputTooLarge);
     $("runtime-input-status").textContent = inputTooLarge

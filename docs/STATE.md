@@ -1,11 +1,11 @@
 # Project state
 
-State version: 14. Updated: 2026-10-25.
+State version: 15. Updated: 2026-10-25.
 Public repository: https://github.com/mrmcgrewx/rivet-lang
 
 ## Current objective and implementation
 
-New work in progress: Add Two Numbers as binary source with real linked nodes, reusable copy/division/remainder/assertion operations, and a native digit-by-digit algorithm. `ADD-TWO-NUMBERS-PLAN.md` fixes encoding, semantics, ownership and acceptance before delegation. `ROADMAP.md` records the user's broader goal of an AI-oriented language competitive with established languages, distinguishing implemented features from future capabilities and performance measurements. No new completion is claimed yet.
+Add Two Numbers implementation checkpoint: `examples/add-two-numbers.rvb` contains 657 binary bytes and 70 operations over real linked nodes. Reusable typed copy, guarded division/remainder, assertions and list operations extend RVB2 without changing prior files. Native/reference/big-integer-oracle tests, generic list tests, C/UBSan, 16 browser scenarios and actual in-app runs passed. Independent review and clean-clone/public-CI completion are being recorded next. `ADD-TWO-NUMBERS-PLAN.md` fixed the contract at `8a6b220`; `ROADMAP.md` records the user's broader agent-language/performance goal without claiming current competitiveness.
 
 Two Sum is complete. RVB2 supports typed mutable registers, input, arrays/maps, comparisons, checked subtraction and native control flow. The 231-byte `examples/two-sum.rvb` contains the complete one-pass algorithm. CLI and GUI supply runtime data separately, and one native build handles multiple cases. `TWO-SUM-PLAN.md` fixed the contract before delegation (`fe95cd0`); implementation is published at `9594d6f`. `COMPUTE-FORMAT.md` specifies the bytes and `TWO-SUM.md` explains the algorithm. Integrated tests, review, actual browser interaction and clean public-clone reproduction passed. See `TWO-SUM-VALIDATION.md`.
 
@@ -28,6 +28,8 @@ Read `BINARY-PLAN.md` for committed requirements/interfaces/ownership and `BINAR
 | Clean public reproduction | Complete | Fresh clone `73f86ed`: byte-exact fixture regeneration, 59 Rust and 12 browser tests, C/UBSan, independent artifacts, successful CI |
 | RVB2 / Two Sum implementation | Complete | `9594d6f`: 21 binary operations; native/reference/oracle comparisons, generic compute tests, 14 browser scenarios and actual in-app runs passed |
 | RVB2 clean reproduction | Complete | Fresh public clone `9594d6f`: 73 Rust tests, 14 browser scenarios, C/UBSan, release build, exact fixture regeneration and independent native copies passed; GitHub CI run `40228140611` succeeded |
+| Linked-data / Add Two Numbers | Implemented and locally verified | 657-byte program, real nodes, reusable copy/div/rem/assert, 270 oracle cases under both native profiles, 16 browser scenarios and actual in-app runs |
+| Linked-data clean reproduction | Pending | Fresh committed clone and public CI are final acceptance gates |
 
 Commits remain the ledger; no Issues/Projects board. Coordinator owns shared docs, backend integration, examples, Git and final acceptance. Agents own binary codec/spec/tests, binary UI/browser tests, and independent review as specified in the committed plan. All contributions must persist handoffs.
 
@@ -39,6 +41,6 @@ A binary file is not encryption or intrinsically exclusive to AI. Literal string
 
 ## Handoff
 
-The original binary-source correction remains complete at `73f86eda8ba2a5af3fdb1d33acdb783661d32bc3`; Two Sum is complete at implementation checkpoint `9594d6f54c070d01abb3cabd36182bb8f48bb634` plus this final evidence update. No required work remains for the requested solution. Local `.rivet/two-sum-deliverables/two-sum` is a 35384-byte native executable verified with all three published cases. Keep the user's live workbench on port 7331 available; browser state may change while they try examples. Future features should preserve version compatibility and generic runtime boundaries.
+Prior binary-source and Two Sum milestones remain complete. Add Two Numbers now needs its committed clean-checkout/public-CI gate and final state publication. The local `.rivet/add-two-numbers-deliverables/add-two-numbers` is a verified 35544-byte standalone executable. The live release workbench on port 7331 includes the new example; actual UI verification ran all published inputs, invalid-digit recovery and 100-digit carry using one build. Preserve the user's live session while finalizing evidence. Future work should follow `ROADMAP.md`, preserve version compatibility and keep algorithm logic out of generic runtime helpers.
 
 Continue from the binary specification and preserve canonical source bytes, not the old JSON frontend. Do not use historical JSON-oriented screenshots or completion records as proof of current acceptance. New language features or measured AI-authoring experiments require their own scoped design and validation.

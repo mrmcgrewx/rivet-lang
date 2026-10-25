@@ -104,6 +104,59 @@ def compute_checks(executable):
     assert result.returncode == 1 and b"cannot write compute output" in result.stderr
 
 
+def list_checks(executable):
+    subprocess.run([executable], check=True, timeout=10)
+
+    def success(mode, data, expected):
+        result = subprocess.run([executable, mode], input=data, capture_output=True, timeout=10)
+        assert result.returncode == 0 and result.stdout == expected and not result.stderr, result
+
+    def failure(mode, data, message):
+        result = subprocess.run([executable, mode], input=data, capture_output=True, timeout=10)
+        assert result.returncode == 1 and not result.stdout and message.encode() in result.stderr, result
+
+    success("empty", b" \t\r\n\v\f", b"[]\n")
+    success("read", b"-0", b"[]\n")
+    success("read", b"1 -0000", b"[0]\n")
+    success("read", b"3 -9223372036854775808 17 9223372036854775807",
+            b"[-9223372036854775808,17,9223372036854775807]\n")
+    success("read", b"3\t-7\r500\v-9\f", b"[-7,500,-9]\n")
+    success("two-lists", b"3 2 4 3 3 5 6 4", b"[3,3,2,5]\n")
+    success("shared-output", b"", b"[4,2,3]\n")
+    success("read", b" " * 262143 + b"0", b"[]\n")
+    large = [-(2**63)] * 10000
+    success("read", ("10000 " + " ".join(map(str, large))).encode(),
+            (json.dumps(large, separators=(",", ":")) + "\n").encode())
+    success("quota-ok", b"", b"")
+    success("read-exhausted-budget", b"0", b"[]\n")
+    for mode in ["nil-value", "nil-next"]:
+        failure(mode, b"", "nil list")
+    failure("wrong-type", b"", "invalid native value type")
+    failure("length-limit", b"", "list length exceeds 10000")
+    failure("length-before-budget", b"", "list length exceeds 10000")
+    failure("quota-exceeded", b"", "allocation budget exceeds 67108864 bytes")
+    failure("read-exhausted-budget", b"1 bad", "allocation budget exceeds 67108864 bytes")
+    failure("read-exhausted-budget", b"10001", "list length exceeds 10000")
+    failure("read", b"", "missing an integer")
+    failure("read", b"2 1", "missing an integer")
+    failure("read", b"-1", "must be nonnegative")
+    failure("read", b"10001", "list length exceeds 10000")
+    failure("read", b"2 7 nope", "invalid signed integer")
+    failure("read", b"1 +7", "invalid signed integer")
+    failure("read", b"1 9223372036854775808", "signed i64 range")
+    failure("read", b"1 5 7", "unconsumed values")
+    failure("empty", b"1", "unconsumed values")
+    failure("read", b" " * 262144 + b"0", "input exceeds 262144 bytes")
+    read_end, write_end = os.pipe()
+    os.close(read_end)
+    try:
+        result = subprocess.run([executable, "empty"], input=b"", stdout=write_end,
+                                stderr=subprocess.PIPE, timeout=10)
+    finally:
+        os.close(write_end)
+    assert result.returncode == 1 and b"cannot write compute output" in result.stderr
+
+
 @contextlib.contextmanager
 def server(executable, port=0, control=None):
     env = os.environ.copy()
@@ -242,13 +295,16 @@ def main():
             values = str(Path(build) / f"values-{name}")
             http = str(Path(build) / f"server-{name}")
             compute = str(Path(build) / f"compute-{name}")
+            lists = str(Path(build) / f"lists-{name}")
             compile_program("values.c", values, flags)
             compile_program("server.c", http, flags, link_runtime=True)
             compile_program("compute.c", compute, flags)
+            compile_program("lists.c", lists, flags)
             values_checks(values)
             compute_checks(compute)
+            list_checks(lists)
             http_checks(http)
-            print(f"{name}: native values, compute input/arrays/maps/limits, HTTP framing, shutdown and rebind passed", flush=True)
+            print(f"{name}: native values, compute input/arrays/maps/lists/limits, HTTP framing, shutdown and rebind passed", flush=True)
 
 
 if __name__ == "__main__":

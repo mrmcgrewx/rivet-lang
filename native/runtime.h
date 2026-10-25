@@ -29,5 +29,11 @@ int64_t rv2_map_get(void *map, int64_t key, int64_t fallback);
 void rv2_map_put(void *map, int64_t key, int64_t value);
 void rv2_tick(void);
 void rv2_return(void *array);
+void *rv2_read_list(void);
+void *rv2_list_cons(int64_t value, void *tail);
+int64_t rv2_list_value(void *list);
+void *rv2_list_next(void *list);
+int64_t rv2_list_len(void *list);
+void rv2_return_list(void *list);
 
 #endif

@@ -8,7 +8,7 @@ Rivet programs are authored as **binary `.rvb` source files**. Numeric opcodes, 
 
 A local browser workbench provides the human interface: decode the source, inspect its bytes, edit values, build, and run. The readable view is generated from the binary file. JSON and textual assembly are not required source formats.
 
-**Status:** experimental prototype. Binary programs support console output, local HTTP services, and computations with runtime input, loops, arrays and integer maps. Native output targets **macOS on Apple Silicon**. AI-generation reliability and efficiency remain research questions.
+**Status:** experimental prototype. Binary programs support console output, local HTTP services, and computations with runtime input, loops, arrays, integer maps and linked lists. Native output targets **macOS on Apple Silicon**. AI-generation reliability and performance competitiveness remain research questions; the [capability roadmap](docs/ROADMAP.md) makes those goals explicit.
 
 ## Source is binary; output is native
 
@@ -98,6 +98,20 @@ In the workbench, select **Two Sum**, inspect its decoded operations or binary b
 
 The algorithm has expected O(n) time using generic hash-map operations. Generated native branches perform the loop and decisions; C support provides array/map storage and input/output. There is no Two Sum helper in the runtime. The current bounded map reserves a fixed 32,768-slot table and uses at most 10,000 entries. See the [algorithm walkthrough](docs/TWO-SUM.md) and [RVB2 specification](docs/COMPUTE-FORMAT.md).
 
+### Add Two Numbers: linked lists and large-number arithmetic
+
+[`add-two-numbers.rvb`](examples/add-two-numbers.rvb) is a **657-byte, 70-instruction program** using real linked nodes. It adds two numbers represented as lists of reversed decimal digits, including 100-digit inputs and 101-digit results:
+
+```sh
+./target/release/rivet build examples/add-two-numbers.rvb -o ./add-two-numbers
+printf '3 2 4 3 3 5 6 4\n' | ./add-two-numbers
+# [7,0,8]
+```
+
+Input contains two count-prefixed lists: `3 2 4 3` is `[2,4,3]` (342), and `3 5 6 4` is `[5,6,4]` (465). The output list `[7,0,8]` represents 807. In the workbench, select **Add Two Numbers** and reuse its build while changing Runtime input.
+
+The program traverses nodes, carries digits and constructs the result in native control flow. It runs in O(max(m,n)) time. This exercise adds general linked-list operations, typed reference copying, checked division/remainder and source assertions; none is specific to addition. See the [algorithm and tradeoffs](docs/ADD-TWO-NUMBERS.md).
+
 ### Standalone HTTP server
 
 The 64-byte [`server.rvb`](examples/server.rvb) defines its values, JSON object, port, route, and response status in binary:
@@ -125,7 +139,7 @@ Rivet has two versioned binary forms. RVB1 is a typed, single-assignment instruc
 
 RVB1's four types are `Text`, signed 64-bit `Int`, `Bool`, and `Json`. Seven numeric operations create literals, concatenate text, add integers with overflow checks, convert scalar values to text, and construct objects. An entry record selects console output or an HTTP service. Instructions are evaluated in order, including unused instructions that can fail.
 
-RVB2 adds a computation entry with declared mutable registers, `IntArray` and `IntMap`, integer input, comparisons, checked subtraction, jumps and conditional branches. Its validator checks that each register has been assigned on every path reaching a read, including across loops. Programs return an integer array. Existing RVB1 files keep their original encoding and behavior.
+RVB2 adds a computation entry with declared mutable registers, `IntArray`, `IntMap` and `IntList`, integer input, comparisons, checked arithmetic, copies, assertions, jumps and conditional branches. Its validator checks that each register has been assigned on every path reaching a read, including across loops. Programs return an integer array or linked list. Linked lists have immutable nodes and shared tails; maps are mutable and copied handles preserve aliasing. Existing RVB1 files keep their original encoding and behavior.
 
 The format makes structure explicit and compact. Fixed-width numeric references and length-delimited records support mechanical construction, inspection, and edits. The decoder checks the version, lengths, types, references, UTF-8, canonical field ordering, and resource bounds before native compilation. There is no intermediate JSON source document, embedded text program, or required assembler.
 
@@ -137,7 +151,7 @@ The representation is intended for AI authorship. Its numeric structure alone do
 Binary .rvb source → direct decoding and validation → typed IR → LLVM → native executable
 ```
 
-Rust implements the decoder, validator, compiler driver, and workbench. LLVM/Clang performs optimization and machine-code generation. Generated code implements program operations, control flow and entry configuration; linked C helpers supply text/JSON handling, arrays/maps, bounded stdin, allocation, output, and HTTP transport. Native executables contain no Rivet source parser or instruction interpreter.
+Rust implements the decoder, validator, compiler driver, and workbench. LLVM/Clang performs optimization and machine-code generation. Generated code implements program operations, control flow and entry configuration; linked C helpers supply text/JSON handling, arrays/maps/list nodes, bounded stdin, allocation, output, and HTTP transport. Native executables contain no Rivet source parser or instruction interpreter.
 
 A reference interpreter executes the validated typed IR for correctness comparisons. The original JSON frontend is retained only as a legacy library/test fixture path; CLI Build/Run/Inspect and the GUI accept binary source and reject JSON source. JSON control messages and HTTP responses are separate from program files.
 
@@ -174,13 +188,13 @@ npx playwright install chromium
 npm test
 ```
 
-The workbench itself needs no Node.js or frontend build. Binary tests cover malformed/truncated inputs, canonical roundtrips, types, control flow and definite assignment, decoded offsets, native/reference agreement, binary import/export/editing, and independent executables. Two Sum tests include the published examples, a seeded oracle corpus, duplicates/negative values, and 10,000 elements under both compiler profiles. See [Two Sum validation](docs/TWO-SUM-VALIDATION.md) and the earlier [RVB1 validation](docs/BINARY-VALIDATION.md).
+The workbench itself needs no Node.js or frontend build. Binary tests cover malformed/truncated inputs, canonical roundtrips, types, control flow and definite assignment, decoded offsets, native/reference agreement, binary import/export/editing, and independent executables. Two Sum tests include a seeded oracle corpus and 10,000 elements. Add Two Numbers tests use an independent arbitrary-precision oracle, 100-digit inputs and generic linked-data/aliasing/arithmetic cases. Both use baseline and size compiler profiles. See [Add Two Numbers validation](docs/ADD-TWO-NUMBERS-VALIDATION.md), [Two Sum validation](docs/TWO-SUM-VALIDATION.md), and the earlier [RVB1 validation](docs/BINARY-VALIDATION.md).
 
 The native optimization objective remains executable file size. `size` uses Clang `-Oz` plus linker dead stripping; `baseline` uses identical generated LLVM and support at `-O0`. Run `python3 scripts/native_benchmark.py` after building the release compiler to compare the RVB1 examples. [Earlier RVB1 measurements](docs/BINARY-BENCHMARK.json), before the RVB2 runtime extension, showed 5.4% smaller Hello, 0.65% smaller server, and a tie for computed output, with slower builds. These historical small-workload results do not establish current sizes or AI-generation/binary-decoding efficiency.
 
 ## Scope
 
-RVB2 supports branches and loops within one computation; it does not yet support user-defined functions, recursion, persistent storage, or HTTP request-dependent values. RVB1 HTTP responses are computed at startup. Source is limited to 64 KiB and 256 instructions. RVB2 additionally bounds execution to one million instructions, arrays/maps to 10,000 elements/entries, runtime input to 256 KiB and logical cumulative allocations to 64 MiB. [Exact resource bounds](docs/LANGUAGE.md#resource-limits) are documented separately.
+RVB2 supports branches and loops within one computation; it does not yet support user-defined functions, recursion, persistent storage, or HTTP request-dependent values. RVB1 HTTP responses are computed at startup. Source is limited to 64 KiB and 256 instructions. RVB2 additionally bounds execution to one million instructions, arrays/maps/list chains to 10,000 elements/entries/nodes, runtime input to 256 KiB and logical cumulative allocations to 64 MiB. [Exact resource bounds](docs/LANGUAGE.md#resource-limits) are documented separately.
 
 HTTP is a local experimental subset: IPv4 loopback, exact GET routes, sequential connections, bounded parsing, and a two-second read deadline. TLS, chunked bodies, streaming, and production deployment are outside this prototype. Only macOS Apple Silicon is verified; cross-compilation, universal binaries, and distribution signing are not provided. Native machine-code emission uses LLVM/Clang; RVB is Rivet's custom binary source format.
 
@@ -189,6 +203,8 @@ HTTP is a local experimental subset: IPv4 loopback, exact GET routes, sequential
 - [Binary format and authoring](docs/BINARY-FORMAT.md)
 - [Computation format (RVB2)](docs/COMPUTE-FORMAT.md)
 - [Two Sum algorithm](docs/TWO-SUM.md)
+- [Add Two Numbers algorithm](docs/ADD-TWO-NUMBERS.md)
+- [Capability and performance roadmap](docs/ROADMAP.md)
 - [Language semantics](docs/LANGUAGE.md)
 - [Architecture and runtime boundary](docs/ARCHITECTURE.md)
 - [Binary-source validation](docs/BINARY-VALIDATION.md)

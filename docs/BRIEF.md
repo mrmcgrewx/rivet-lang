@@ -14,7 +14,9 @@ Native compilation is part of completion. Both demonstrations must build standal
 
 ## Language and runtime
 
-The next requested exercise is [LeetCode Two Sum](https://leetcode.com/problems/two-sum/description/). `TWO-SUM-PLAN.md` defines the RVB2 computation extension: runtime input, typed mutable registers, arrays/maps and control flow, with the algorithm authored in actual binary source and compiled natively. Preserve the existing RVB1 demonstrations. The GUI must distinguish source bytes from runtime test data and reuse a build across inputs.
+The algorithm exercises are [Two Sum](https://leetcode.com/problems/two-sum/description/) and [Add Two Numbers](https://leetcode.com/problems/add-two-numbers/description/). `TWO-SUM-PLAN.md` defines RVB2 runtime input, mutable registers, arrays/maps and control flow; `ADD-TWO-NUMBERS-PLAN.md` adds real linked nodes, copying, checked division/remainder and assertions. Algorithms remain binary source compiled natively. Preserve existing files/semantics, distinguish source from runtime data in the GUI, and reuse a build across inputs.
+
+The user wants these tasks to develop a language AI agents can use in place of established languages with comparable or better performance. `ROADMAP.md` makes that direction durable: prioritize reusable capabilities and independent tests, then functions/modules/libraries and practical agent tooling. Runtime-speed and agent-authoring benefits require representative comparative measurements; binary source and small examples alone are not sufficient evidence.
 
 - Author actual `.rvb` binary source files containing numeric opcodes, types, register references and payloads. JSON, textual assembly, and renamed/embedded text are not the canonical source.
 - Provide a GUI decoder and byte-preserving editor for human inspection; the compiler consumes binary source directly.

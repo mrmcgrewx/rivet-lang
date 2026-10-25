@@ -170,6 +170,10 @@ impl Workbench {
                         Some((include_bytes!("../examples/computed.rvb"), "computed.rvb"))
                     }
                     "two-sum" => Some((include_bytes!("../examples/two-sum.rvb"), "two-sum.rvb")),
+                    "add-two-numbers" => Some((
+                        include_bytes!("../examples/add-two-numbers.rvb"),
+                        "add-two-numbers.rvb",
+                    )),
                     _ => None,
                 };
                 if let Some((bytes, filename)) = example {
@@ -218,7 +222,8 @@ impl Workbench {
                         {"id":"hello","name":"Hello world","url":"/api/examples/hello","filename":"hello.rvb"},
                         {"id":"server","name":"HTTP server","url":"/api/examples/server","filename":"server.rvb"},
                         {"id":"computed","name":"Computed values","url":"/api/examples/computed","filename":"computed.rvb"},
-                        {"id":"two-sum","name":"Two Sum","url":"/api/examples/two-sum","filename":"two-sum.rvb","input":"4 2 7 11 15 9\n"}
+                        {"id":"two-sum","name":"Two Sum","url":"/api/examples/two-sum","filename":"two-sum.rvb","input":"4 2 7 11 15 9\n"},
+                        {"id":"add-two-numbers","name":"Add Two Numbers","url":"/api/examples/add-two-numbers","filename":"add-two-numbers.rvb","input":"3 2 4 3 3 5 6 4\n"}
                     ]}),
                 ),
                 _ => send_json(request, 404, error("Not found")),

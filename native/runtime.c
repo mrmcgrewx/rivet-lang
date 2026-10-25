@@ -29,7 +29,7 @@
 #define RV2_MAX_ALLOCATION ((size_t)67108864)
 #define RV2_MAX_STEPS UINT64_C(1000000)
 
-typedef enum { RV_TEXT, RV_JSON, RV_INT_ARRAY, RV_INT_MAP } rv_kind;
+typedef enum { RV_TEXT, RV_JSON, RV_INT_ARRAY, RV_INT_MAP, RV_INT_LIST } rv_kind;
 typedef struct rv_value {
     struct rv_value *next;
     struct rv_value *json_encoding;
@@ -61,6 +61,11 @@ typedef struct {
     size_t count;
     rv2_map_slot slots[RV2_MAP_CAPACITY];
 } rv2_map;
+typedef struct {
+    int64_t value;
+    rv_value *tail;
+    uint64_t length;
+} rv2_list_node;
 
 _Noreturn void rv_fail(const unsigned char *message, uint64_t length) {
     static const char prefix[] = "Rivet runtime: ";
@@ -444,11 +449,23 @@ void rv2_map_put(void *map, int64_t key, int64_t item) {
     slot->value = item;
 }
 
-void rv2_return(void *array) {
-    rv_value *value = rv_require(array, RV_INT_ARRAY);
+static void rv2_finish_input(void) {
     rv2_load_input();
     rv2_skip_space();
     if (rv2_input_cursor != rv2_input_length) rv_error("runtime input has unconsumed values");
+}
+
+static void rv2_write_output(const unsigned char *bytes, size_t length) {
+    if (length > RV2_MAX_INPUT) rv_error("compute output exceeds 262144 bytes");
+    rv_ignore_sigpipe();
+    if (fwrite(bytes, 1, length, stdout) != length || fflush(stdout) != 0) {
+        rv_system_error("cannot write compute output");
+    }
+}
+
+void rv2_return(void *array) {
+    rv_value *value = rv_require(array, RV_INT_ARRAY);
+    rv2_finish_input();
     size_t count = value->length / sizeof(int64_t);
     const int64_t *items = (const int64_t *)(const void *)value->bytes;
     /* 20 digits/sign, comma and terminator per integer, plus brackets/newline. */
@@ -464,11 +481,82 @@ void rv2_return(void *array) {
     }
     output->bytes[length++] = ']';
     output->bytes[length++] = '\n';
-    if (length > RV2_MAX_INPUT) rv_error("compute output exceeds 262144 bytes");
-    rv_ignore_sigpipe();
-    if (fwrite(output->bytes, 1, length, stdout) != length || fflush(stdout) != 0) {
-        rv_system_error("cannot write compute output");
+    rv2_write_output(output->bytes, length);
+}
+
+static rv2_list_node *rv2_node(void *list) {
+    rv_value *value = rv_require(list, RV_INT_LIST);
+    return (rv2_list_node *)(void *)value->bytes;
+}
+
+int64_t rv2_list_len(void *list) {
+    return list == NULL ? 0 : (int64_t)rv2_node(list)->length;
+}
+
+/* Construct only after charging the operation's quota. A list read charges all
+   nodes before token parsing, whereas cons charges its one newly created node. */
+static void *rv2_new_node(int64_t item, void *tail, uint64_t length) {
+    rv_value *value = rv_allocate(sizeof(rv2_list_node), RV_INT_LIST);
+    rv2_list_node *node = (rv2_list_node *)(void *)value->bytes;
+    node->value = item;
+    node->tail = tail;
+    node->length = length;
+    return value;
+}
+
+void *rv2_list_cons(int64_t item, void *tail) {
+    int64_t length = rv2_list_len(tail);
+    if (length >= (int64_t)RV2_MAX_ITEMS) rv_error("integer list length exceeds 10000");
+    rv2_charge(24);
+    return rv2_new_node(item, tail, (uint64_t)length + 1);
+}
+
+int64_t rv2_list_value(void *list) {
+    if (list == NULL) rv_error("cannot read value from nil list");
+    return rv2_node(list)->value;
+}
+
+void *rv2_list_next(void *list) {
+    if (list == NULL) rv_error("cannot read next from nil list");
+    return rv2_node(list)->tail;
+}
+
+void *rv2_read_list(void) {
+    int64_t count = rv2_read_int();
+    if (count < 0) rv_error("integer list length must be nonnegative");
+    if (count > (int64_t)RV2_MAX_ITEMS) rv_error("integer list length exceeds 10000");
+    rv2_charge((size_t)count * 24);
+    /* Bounded temporary input storage preserves stream order without exposing
+       mutation or array-backed list handles. The published value is a chain of
+       immutable nodes, sharing the same representation as ordinary cons. */
+    int64_t items[RV2_MAX_ITEMS];
+    for (size_t index = 0; index < (size_t)count; ++index) items[index] = rv2_read_int();
+    void *list = NULL;
+    for (size_t index = (size_t)count; index != 0; --index) {
+        list = rv2_new_node(items[index - 1], list, (uint64_t)((size_t)count - index + 1));
     }
+    return list;
+}
+
+void rv2_return_list(void *list) {
+    size_t count = (size_t)rv2_list_len(list);
+    rv2_finish_input();
+    size_t capacity = count * 22 + 4;
+    rv_value *output = rv_allocate(capacity, RV_TEXT);
+    size_t length = 0;
+    output->bytes[length++] = '[';
+    void *cursor = list;
+    for (size_t index = 0; index < count; ++index) {
+        rv2_list_node *node = rv2_node(cursor);
+        if (index != 0) output->bytes[length++] = ',';
+        int written = snprintf((char *)output->bytes + length, capacity - length, "%" PRId64, node->value);
+        if (written < 0 || (size_t)written >= capacity - length) rv_error("cannot format signed integer list");
+        length += (size_t)written;
+        cursor = node->tail;
+    }
+    output->bytes[length++] = ']';
+    output->bytes[length++] = '\n';
+    rv2_write_output(output->bytes, length);
 }
 
 void rv_add_route(const unsigned char *path, uint64_t length, uint32_t status, void *json) {

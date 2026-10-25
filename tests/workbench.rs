@@ -103,7 +103,7 @@ fn binary_examples_and_inspection_are_exact_and_reject_text_source() {
     let app = Harness::new();
     let (status, examples) = app.call("GET", "/api/examples", json!({}));
     assert_eq!(status, 200);
-    assert_eq!(examples["examples"].as_array().unwrap().len(), 4);
+    assert_eq!(examples["examples"].as_array().unwrap().len(), 5);
     assert!(examples["examples"][0].get("source").is_none());
     let (status, bytes) = app.raw(
         "GET",
@@ -227,6 +227,61 @@ fn console_binary_edit_error_and_stale_build_paths() {
         409
     );
     assert!(app.call("GET", "/api/status", json!({})).1["build"].is_null());
+}
+
+#[test]
+fn linked_list_example_runs_data_changes_and_recovers_without_rebuilding() {
+    let app = Harness::new();
+    let (_, metadata) = app.call("GET", "/api/examples", json!({}));
+    assert_eq!(metadata["examples"][4]["input"], "3 2 4 3 3 5 6 4\n");
+    let (status, source) = app.raw(
+        "GET",
+        "/api/examples/add-two-numbers",
+        b"",
+        "application/octet-stream",
+        "",
+    );
+    assert_eq!(status, 200);
+    assert_eq!(source, include_bytes!("../examples/add-two-numbers.rvb"));
+    let (status, inspection) = app.binary("/api/inspect", &source);
+    assert_eq!(status, 200, "{inspection}");
+    assert!(
+        inspection["inspection"]["ir"]
+            .as_str()
+            .unwrap()
+            .contains("IntList")
+    );
+    let id = app.build(&source);
+    for (data, output) in [
+        ("3 2 4 3 3 5 6 4", "[7,0,8]\n"),
+        ("1 0 1 0", "[0]\n"),
+        ("7 9 9 9 9 9 9 9 4 9 9 9 9", "[8,9,9,9,0,0,0,1]\n"),
+    ] {
+        let (status, result) = app.call("POST", "/api/run", json!({"build_id":id,"input":data}));
+        assert_eq!(status, 200, "{result}");
+        assert_eq!(result["stdout"], output);
+        assert_eq!(
+            app.call("GET", "/api/status", json!({})).1["build"]["id"],
+            id
+        );
+    }
+    let (status, error) = app.call(
+        "POST",
+        "/api/run",
+        json!({"build_id":id,"input":"1 10 1 0"}),
+    );
+    assert_eq!(status, 400);
+    assert!(
+        error["stderr"]
+            .as_str()
+            .unwrap()
+            .contains("assertion failed")
+    );
+    assert_eq!(
+        app.call("POST", "/api/run", json!({"build_id":id,"input":"1 9 1 1"}))
+            .1["stdout"],
+        "[0,1]\n"
+    );
 }
 #[test]
 fn binary_server_lifecycle_and_independent_running_artifact() {

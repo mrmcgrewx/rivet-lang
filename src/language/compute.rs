@@ -19,14 +19,26 @@ pub(super) enum RegisterType {
     Bool,
     Array,
     Map,
+    List,
 }
 impl RegisterType {
+    fn from_tag(tag: u8) -> Option<Self> {
+        match tag {
+            2 => Some(Self::Int),
+            3 => Some(Self::Bool),
+            5 => Some(Self::Array),
+            6 => Some(Self::Map),
+            7 => Some(Self::List),
+            _ => None,
+        }
+    }
     fn tag(self) -> u8 {
         match self {
             Self::Int => 2,
             Self::Bool => 3,
             Self::Array => 5,
             Self::Map => 6,
+            Self::List => 7,
         }
     }
     pub(super) fn name(self) -> &'static str {
@@ -35,6 +47,7 @@ impl RegisterType {
             Self::Bool => "Bool",
             Self::Array => "IntArray",
             Self::Map => "IntMap",
+            Self::List => "IntList",
         }
     }
 }
@@ -47,6 +60,9 @@ pub(super) enum Op {
     Sub(usize, usize, usize),
     Equal(usize, usize, usize),
     Less(usize, usize, usize),
+    Copy(usize, usize),
+    Div(usize, usize, usize),
+    Rem(usize, usize, usize),
     ReadInt(usize),
     ReadArray(usize),
     Length(usize, usize),
@@ -58,6 +74,15 @@ pub(super) enum Op {
     Jump(usize),
     Branch(usize, usize, usize),
     Return(usize),
+    ReturnList(usize),
+    Assert(usize),
+    Nil(usize),
+    Cons(usize, usize, usize),
+    IsNil(usize, usize),
+    ListValue(usize, usize),
+    ListNext(usize, usize),
+    ReadList(usize),
+    ListLength(usize, usize),
 }
 impl Op {
     fn destination(&self) -> Option<usize> {
@@ -68,6 +93,16 @@ impl Op {
             | Self::Sub(d, ..)
             | Self::Equal(d, ..)
             | Self::Less(d, ..)
+            | Self::Copy(d, _)
+            | Self::Div(d, ..)
+            | Self::Rem(d, ..)
+            | Self::Nil(d)
+            | Self::Cons(d, ..)
+            | Self::IsNil(d, _)
+            | Self::ListValue(d, _)
+            | Self::ListNext(d, _)
+            | Self::ReadList(d)
+            | Self::ListLength(d, _)
             | Self::ReadInt(d)
             | Self::ReadArray(d)
             | Self::Length(d, _)
@@ -75,7 +110,12 @@ impl Op {
             | Self::Array(d, _)
             | Self::Map(d)
             | Self::Lookup(d, ..) => Some(*d),
-            Self::Put(..) | Self::Jump(_) | Self::Branch(..) | Self::Return(_) => None,
+            Self::Put(..)
+            | Self::Jump(_)
+            | Self::Branch(..)
+            | Self::Return(_)
+            | Self::ReturnList(_)
+            | Self::Assert(_) => None,
         }
     }
     fn reads(&self) -> Vec<usize> {
@@ -85,26 +125,40 @@ impl Op {
             | Self::ReadInt(_)
             | Self::ReadArray(_)
             | Self::Map(_)
+            | Self::Nil(_)
+            | Self::ReadList(_)
             | Self::Jump(_) => vec![],
             Self::Add(_, a, b)
             | Self::Sub(_, a, b)
             | Self::Equal(_, a, b)
             | Self::Less(_, a, b)
+            | Self::Div(_, a, b)
+            | Self::Rem(_, a, b)
+            | Self::Cons(_, a, b)
             | Self::Get(_, a, b) => vec![*a, *b],
-            Self::Length(_, a) | Self::Return(a) | Self::Branch(a, ..) => vec![*a],
+            Self::Length(_, a)
+            | Self::Return(a)
+            | Self::Branch(a, ..)
+            | Self::Copy(_, a)
+            | Self::IsNil(_, a)
+            | Self::ListValue(_, a)
+            | Self::ListNext(_, a)
+            | Self::ListLength(_, a)
+            | Self::ReturnList(a)
+            | Self::Assert(a) => vec![*a],
             Self::Array(_, values) => values.clone(),
             Self::Lookup(_, a, b, c) | Self::Put(a, b, c) => vec![*a, *b, *c],
         }
     }
     fn successors(&self, pc: usize) -> Vec<usize> {
         match self {
-            Self::Return(_) => vec![],
+            Self::Return(_) | Self::ReturnList(_) => vec![],
             Self::Jump(target) => vec![*target],
             Self::Branch(_, yes, no) => vec![*yes, *no],
             _ => vec![pc + 1],
         }
     }
-    fn record(&self) -> (u8, u8, Vec<u8>) {
+    fn record(&self, types: &[RegisterType]) -> (u8, u8, Vec<u8>) {
         let mut payload = Vec::new();
         let (opcode, tag) = match self {
             Self::Int(d, value) => {
@@ -121,6 +175,9 @@ impl Op {
             | Self::Sub(d, a, b)
             | Self::Equal(d, a, b)
             | Self::Less(d, a, b)
+            | Self::Div(d, a, b)
+            | Self::Rem(d, a, b)
+            | Self::Cons(d, a, b)
             | Self::Get(d, a, b) => {
                 put_refs(&mut payload, &[*d, *a, *b]);
                 match self {
@@ -128,20 +185,41 @@ impl Op {
                     Self::Sub(..) => (0x13, 2),
                     Self::Equal(..) => (0x14, 3),
                     Self::Less(..) => (0x15, 3),
+                    Self::Div(..) => (0x17, 2),
+                    Self::Rem(..) => (0x18, 2),
+                    Self::Cons(..) => (0x61, 7),
                     _ => (0x33, 2),
                 }
             }
-            Self::ReadInt(d) | Self::ReadArray(d) | Self::Map(d) => {
+            Self::ReadInt(d)
+            | Self::ReadArray(d)
+            | Self::Map(d)
+            | Self::Nil(d)
+            | Self::ReadList(d) => {
                 put_u16(&mut payload, *d);
                 match self {
                     Self::ReadInt(_) => (0x30, 2),
                     Self::ReadArray(_) => (0x31, 5),
+                    Self::Nil(_) => (0x60, 7),
+                    Self::ReadList(_) => (0x65, 7),
                     _ => (0x40, 6),
                 }
             }
-            Self::Length(d, a) => {
+            Self::Length(d, a)
+            | Self::Copy(d, a)
+            | Self::IsNil(d, a)
+            | Self::ListValue(d, a)
+            | Self::ListNext(d, a)
+            | Self::ListLength(d, a) => {
                 put_refs(&mut payload, &[*d, *a]);
-                (0x32, 2)
+                match self {
+                    Self::Copy(..) => (0x16, types[*d].tag()),
+                    Self::IsNil(..) => (0x62, 3),
+                    Self::ListValue(..) => (0x63, 2),
+                    Self::ListNext(..) => (0x64, 7),
+                    Self::ListLength(..) => (0x66, 2),
+                    _ => (0x32, 2),
+                }
             }
             Self::Array(d, values) => {
                 put_refs(&mut payload, &[*d, values.len()]);
@@ -164,9 +242,16 @@ impl Op {
                 put_refs(&mut payload, &[*condition, *yes, *no]);
                 (0x51, 0)
             }
-            Self::Return(array) => {
-                put_u16(&mut payload, *array);
-                (0x52, 0)
+            Self::Return(value) | Self::ReturnList(value) | Self::Assert(value) => {
+                put_u16(&mut payload, *value);
+                (
+                    match self {
+                        Self::Return(_) => 0x52,
+                        Self::ReturnList(_) => 0x53,
+                        _ => 0x54,
+                    },
+                    0,
+                )
             }
         };
         (opcode, tag, payload)
@@ -222,18 +307,23 @@ fn decode_op(
     count: usize,
     index: usize,
 ) -> Result<(Op, BinaryInstructionInfo), Diagnostic> {
-    use RegisterType::{Array, Bool, Int, Map};
+    use RegisterType::{Array, Bool, Int, List, Map};
     let offset = reader.position();
     let opcode = reader.u8("instruction opcode")?;
-    let expected = match opcode {
-        0x02 | 0x11 | 0x13 | 0x30 | 0x32 | 0x33 | 0x41 => Some(Int),
-        0x03 | 0x14 | 0x15 => Some(Bool),
-        0x31 | 0x34 => Some(Array),
-        0x40 => Some(Map),
-        0x42 | 0x50 | 0x51 | 0x52 => None,
-        _ => return Err(error(offset, format!("unknown RVB2 opcode 0x{opcode:02x}"))),
-    };
     let tag = reader.u8("result type tag")?;
+    let expected =
+        match opcode {
+            0x02 | 0x11 | 0x13 | 0x17 | 0x18 | 0x30 | 0x32 | 0x33 | 0x41 | 0x63 | 0x66 => Some(Int),
+            0x03 | 0x14 | 0x15 | 0x62 => Some(Bool),
+            0x16 => Some(RegisterType::from_tag(tag).ok_or_else(|| {
+                error(offset + 1, "copy requires a valid compute result type tag")
+            })?),
+            0x60 | 0x61 | 0x64 | 0x65 => Some(List),
+            0x31 | 0x34 => Some(Array),
+            0x40 => Some(Map),
+            0x42 | 0x50 | 0x51 | 0x52 | 0x53 | 0x54 => None,
+            _ => return Err(error(offset, format!("unknown RVB2 opcode 0x{opcode:02x}"))),
+        };
     let expected_tag = expected.map_or(0, RegisterType::tag);
     if tag != expected_tag {
         return Err(error(
@@ -267,16 +357,22 @@ fn decode_op(
             }
             Op::Bool(d, value == 1)
         }
-        0x11 | 0x13 | 0x14 | 0x15 => {
+        0x11 | 0x13 | 0x14 | 0x15 | 0x17 | 0x18 => {
             let a = register(&mut p, types, Int)?;
             let b = register(&mut p, types, Int)?;
             match opcode {
                 0x11 => Op::Add(d, a, b),
                 0x13 => Op::Sub(d, a, b),
                 0x14 => Op::Equal(d, a, b),
-                _ => Op::Less(d, a, b),
+                0x15 => Op::Less(d, a, b),
+                0x17 => Op::Div(d, a, b),
+                _ => Op::Rem(d, a, b),
             }
         }
+        0x16 => Op::Copy(
+            d,
+            register(&mut p, types, expected.expect("copy has a result type"))?,
+        ),
         0x30 => Op::ReadInt(d),
         0x31 => Op::ReadArray(d),
         0x32 => Op::Length(d, register(&mut p, types, Array)?),
@@ -319,6 +415,19 @@ fn decode_op(
             target(&mut p, count)?,
         ),
         0x52 => Op::Return(register(&mut p, types, Array)?),
+        0x53 => Op::ReturnList(register(&mut p, types, List)?),
+        0x54 => Op::Assert(register(&mut p, types, Bool)?),
+        0x60 => Op::Nil(d),
+        0x61 => Op::Cons(
+            d,
+            register(&mut p, types, Int)?,
+            register(&mut p, types, List)?,
+        ),
+        0x62 => Op::IsNil(d, register(&mut p, types, List)?),
+        0x63 => Op::ListValue(d, register(&mut p, types, List)?),
+        0x64 => Op::ListNext(d, register(&mut p, types, List)?),
+        0x65 => Op::ReadList(d),
+        0x66 => Op::ListLength(d, register(&mut p, types, List)?),
         _ => unreachable!(),
     };
     p.finish("RVB2 instruction payload")?;
@@ -374,18 +483,11 @@ pub(super) fn decode(source: &[u8]) -> Result<Decoded, Diagnostic> {
     let mut registers = Vec::with_capacity(register_count);
     for _ in 0..register_count {
         let offset = reader.position();
-        registers.push(match reader.u8("register type")? {
-            2 => RegisterType::Int,
-            3 => RegisterType::Bool,
-            5 => RegisterType::Array,
-            6 => RegisterType::Map,
-            value => {
-                return Err(error(
-                    offset,
-                    format!("unknown RVB2 register type tag {value}"),
-                ));
-            }
-        });
+        let tag = reader.u8("register type")?;
+        registers.push(
+            RegisterType::from_tag(tag)
+                .ok_or_else(|| error(offset, format!("unknown RVB2 register type tag {tag}")))?,
+        );
     }
     let mut operations = Vec::with_capacity(count);
     let mut infos = Vec::with_capacity(count);
@@ -514,7 +616,7 @@ impl ComputeProgram {
         put_u16(&mut body, self.registers.len());
         body.extend(self.registers.iter().map(|t| t.tag()));
         for operation in &self.operations {
-            let (opcode, tag, payload) = operation.record();
+            let (opcode, tag, payload) = operation.record(&self.registers);
             body.extend_from_slice(&[opcode, tag]);
             put_u16(&mut body, payload.len());
             body.extend(payload);
@@ -549,6 +651,9 @@ impl ComputeProgram {
                 Op::Sub(d, a, b) => write!(text, "%{d} = sub %{a}, %{b}"),
                 Op::Equal(d, a, b) => write!(text, "%{d} = eq %{a}, %{b}"),
                 Op::Less(d, a, b) => write!(text, "%{d} = lt %{a}, %{b}"),
+                Op::Copy(d, a) => write!(text, "%{d} = copy %{a}"),
+                Op::Div(d, a, b) => write!(text, "%{d} = div %{a}, %{b}"),
+                Op::Rem(d, a, b) => write!(text, "%{d} = rem %{a}, %{b}"),
                 Op::ReadInt(d) => write!(text, "%{d} = read_int"),
                 Op::ReadArray(d) => write!(text, "%{d} = read_array"),
                 Op::Length(d, a) => write!(text, "%{d} = array_len %{a}"),
@@ -568,6 +673,15 @@ impl ComputeProgram {
                 Op::Jump(t) => write!(text, "jump @{t}"),
                 Op::Branch(c, yes, no) => write!(text, "branch %{c}, @{yes}, @{no}"),
                 Op::Return(a) => write!(text, "return %{a}"),
+                Op::ReturnList(a) => write!(text, "return_list %{a}"),
+                Op::Assert(a) => write!(text, "assert %{a}"),
+                Op::Nil(d) => write!(text, "%{d} = list_nil"),
+                Op::Cons(d, a, b) => write!(text, "%{d} = list_cons %{a}, %{b}"),
+                Op::IsNil(d, a) => write!(text, "%{d} = list_is_nil %{a}"),
+                Op::ListValue(d, a) => write!(text, "%{d} = list_value %{a}"),
+                Op::ListNext(d, a) => write!(text, "%{d} = list_next %{a}"),
+                Op::ReadList(d) => write!(text, "%{d} = read_list"),
+                Op::ListLength(d, a) => write!(text, "%{d} = list_len %{a}"),
             }
             .unwrap();
             text.push('\n');
@@ -586,6 +700,7 @@ impl ComputeProgram {
         let mut registers = vec![Value::Empty; self.registers.len()];
         let mut arrays = Vec::new();
         let mut maps: Vec<HashMap<i64, i64>> = Vec::new();
+        let mut nodes: Vec<ListNode> = Vec::new();
         let mut allocated = 0;
         let mut pc = 0;
         for _ in 0..MAX_STEPS {
@@ -594,6 +709,90 @@ impl ComputeProgram {
                 match op {
                     Op::Int(d, value) => registers[*d] = Value::Int(*value),
                     Op::Bool(d, value) => registers[*d] = Value::Bool(*value),
+                    Op::Copy(d, source) => registers[*d] = registers[*source].clone(),
+                    Op::Div(d, a, b) | Op::Rem(d, a, b) => {
+                        let a = registers[*a].int();
+                        let b = registers[*b].int();
+                        if b == 0 {
+                            return Err("division or remainder by zero".into());
+                        }
+                        let value = if matches!(op, Op::Div(..)) {
+                            a.checked_div(b)
+                        } else {
+                            a.checked_rem(b)
+                        };
+                        registers[*d] = Value::Int(value.ok_or("signed 64-bit integer overflow")?);
+                    }
+                    Op::Assert(condition) => {
+                        if !registers[*condition].boolean() {
+                            return Err("assertion failed".into());
+                        }
+                    }
+                    Op::Nil(d) => registers[*d] = Value::List(None),
+                    Op::Cons(d, value, tail) => {
+                        let tail = registers[*tail].list();
+                        let length = list_length(&nodes, tail);
+                        if length >= MAX_ARRAY {
+                            return Err("list length exceeds 10000 nodes".into());
+                        }
+                        charge(&mut allocated, 24)?;
+                        let node = append_node(&mut nodes, registers[*value].int(), tail);
+                        registers[*d] = Value::List(Some(node));
+                    }
+                    Op::IsNil(d, list) => {
+                        registers[*d] = Value::Bool(registers[*list].list().is_none())
+                    }
+                    Op::ListValue(d, list) => {
+                        let node = registers[*list]
+                            .list()
+                            .ok_or("cannot read value of nil list")?;
+                        registers[*d] = Value::Int(nodes[node].value);
+                    }
+                    Op::ListNext(d, list) => {
+                        let node = registers[*list]
+                            .list()
+                            .ok_or("cannot read next of nil list")?;
+                        registers[*d] = Value::List(nodes[node].next);
+                    }
+                    Op::ListLength(d, list) => {
+                        registers[*d] =
+                            Value::Int(list_length(&nodes, registers[*list].list()) as i64)
+                    }
+                    Op::ReadList(d) => {
+                        let length = input.integer()?;
+                        if !(0..=MAX_ARRAY as i64).contains(&length) {
+                            return Err("list length must be between 0 and 10000".into());
+                        }
+                        // Match native failure order: length, full logical charge, tokens,
+                        // then immutable node construction without charging twice.
+                        charge(&mut allocated, length as usize * 24)?;
+                        let mut values = Vec::with_capacity(length as usize);
+                        for _ in 0..length {
+                            values.push(input.integer()?);
+                        }
+                        let mut tail = None;
+                        for value in values.into_iter().rev() {
+                            tail = Some(append_node(&mut nodes, value, tail));
+                        }
+                        registers[*d] = Value::List(tail);
+                    }
+                    Op::ReturnList(list) => {
+                        input.finish()?;
+                        let mut stdout = String::from("[");
+                        let mut current = registers[*list].list();
+                        let mut first = true;
+                        while let Some(index) = current {
+                            if !first {
+                                stdout.push(',');
+                            }
+                            first = false;
+                            let node = &nodes[index];
+                            write!(stdout, "{}", node.value).unwrap();
+                            current = node.next;
+                        }
+                        stdout.push_str("]\n");
+                        return Ok(Some(Execution::Console { stdout }));
+                    }
                     Op::Add(d, a, b) | Op::Sub(d, a, b) => {
                         let a = registers[*a].int();
                         let b = registers[*b].int();
@@ -707,8 +906,36 @@ enum Value {
     Bool(bool),
     Array(Rc<Vec<i64>>),
     Map(usize),
+    List(Option<usize>),
+}
+// Node ownership is flat: copying a list shares an arena index and destruction
+// never recurses through a 10000-node chain.
+struct ListNode {
+    value: i64,
+    next: Option<usize>,
+    length: usize,
+}
+fn list_length(nodes: &[ListNode], list: Option<usize>) -> usize {
+    list.map_or(0, |index| nodes[index].length)
+}
+fn append_node(nodes: &mut Vec<ListNode>, value: i64, tail: Option<usize>) -> usize {
+    let length = list_length(nodes, tail) + 1;
+    let index = nodes.len();
+    nodes.push(ListNode {
+        value,
+        next: tail,
+        length,
+    });
+    index
 }
 impl Value {
+    fn list(&self) -> Option<usize> {
+        if let Self::List(value) = self {
+            *value
+        } else {
+            unreachable!("validated initialized IntList")
+        }
+    }
     fn int(&self) -> i64 {
         if let Self::Int(value) = self {
             *value

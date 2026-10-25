@@ -14,3 +14,5 @@ Read `docs/BRIEF.md`, `docs/ARCHITECTURE.md`, `docs/NATIVE-PLAN.md`, `docs/BINAR
 Current binary-source ownership and interfaces are specified in `docs/BINARY-PLAN.md`; `docs/CONTRACT.md` retains historical APIs. Read the current validation and review records before changing behavior.
 
 RVB2 computation ownership/interfaces are specified in `docs/TWO-SUM-PLAN.md`, with exact encoding in `docs/COMPUTE-FORMAT.md`. Keep algorithms in binary source and generated native operations; runtime helpers must remain general-purpose.
+
+Read `docs/ADD-TWO-NUMBERS-PLAN.md` for the additive linked-list/copy/arithmetic contract and `docs/ROADMAP.md` for the user's language-capability and performance direction. Extend general capabilities, test them outside individual examples, and distinguish measured performance from aspirations.

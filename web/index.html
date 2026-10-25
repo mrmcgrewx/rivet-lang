@@ -288,9 +288,10 @@
               <label id="runtime-input-heading" for="runtime-input" class="eyebrow">RUNTIME INPUT</label>
               <span id="runtime-input-status" class="runtime-input-status" role="status">Passed to each run · no rebuild needed</span>
             </div>
-            <p id="runtime-input-help" class="runtime-input-help">Enter integers separated by spaces or newlines. An array starts with its length, followed by its elements. These values are input to the executable; the program remains in the binary source above.</p>
+            <p id="runtime-input-help" class="runtime-input-help">Enter integers separated by spaces or newlines. An array or linked list starts with its length, followed by its values. These values are input to the executable; the program remains in the binary source above.</p>
             <p id="two-sum-input-help" class="runtime-input-help" hidden>Two Sum reads the array, then the target. <code>4 2 7 11 15 9</code> means <code>[2, 7, 11, 15]</code> with target <code>9</code>. The result contains two zero-based indices.</p>
-            <textarea id="runtime-input" aria-label="Runtime input" aria-describedby="runtime-input-help two-sum-input-help" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" rows="3" placeholder="Array length, array elements, then any further integers the program reads"></textarea>
+            <p id="add-two-numbers-input-help" class="runtime-input-help" hidden>Add Two Numbers reads two digit lists. Start each list with its length, then write its digits from ones place upward: <code>3 2 4 3</code> represents <code>342</code>, and <code>3 5 6 4</code> represents <code>465</code>. Use 1–100 digits from 0–9 per list, with no final zero unless the list is just <code>[0]</code>. The returned digits use the same order; a carry can add another digit.</p>
+            <textarea id="runtime-input" aria-label="Runtime input" aria-describedby="runtime-input-help" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" rows="3" placeholder="Length, array or list values, then any further input the program reads"></textarea>
             <div id="runtime-input-size" class="runtime-input-size">0 bytes · 256 KiB maximum</div>
           </section>
           <div class="execution-toolbar">
