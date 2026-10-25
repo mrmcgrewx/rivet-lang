@@ -1,5 +1,7 @@
 use rivet::{
-    language::{self, Execution},
+    language::{self, CompiledProgram, Execution},
+    native::{self, BuildProfile},
+    native_process::{self, NativeServer},
     runtime::ProgramServer,
     workbench::Workbench,
 };
@@ -7,6 +9,7 @@ use std::{
     env,
     fs::File,
     io::Read,
+    path::{Path, PathBuf},
     process::ExitCode,
     sync::{
         Arc,
@@ -15,7 +18,6 @@ use std::{
     thread,
     time::Duration,
 };
-
 fn main() -> ExitCode {
     match run() {
         Ok(()) => ExitCode::SUCCESS,
@@ -25,11 +27,26 @@ fn main() -> ExitCode {
         }
     }
 }
+fn read_program(file: &str) -> Result<CompiledProgram, String> {
+    let mut source = String::new();
+    File::open(file)
+        .map_err(|e| format!("{file}: {e}"))?
+        .take(65537)
+        .read_to_string(&mut source)
+        .map_err(|e| format!("Cannot read UTF-8 program: {e}"))?;
+    language::compile(&source).map_err(|errors| {
+        errors
+            .iter()
+            .map(|e| format!("{}: {}", e.path, e.message))
+            .collect::<Vec<_>>()
+            .join("\n")
+    })
+}
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.is_empty() || args == ["--help"] || args == ["help"] {
         println!(
-            "Rivet 0.1 — typed dataflow language\n\n  rivet ui [--port PORT]    Open local workbench (default 7331)\n  rivet check FILE          Compile and print register IR\n  rivet run FILE            Execute; HTTP programs stop with Ctrl-C\n\nAll listeners bind to 127.0.0.1. Port 0 selects a free port."
+            "Rivet — native typed dataflow compiler\n\n  rivet build FILE -o PATH [--profile size|baseline]\n                            Build a standalone executable and inspectable LLVM/assembly\n  rivet run FILE            Build and launch native executable\n  rivet interpret FILE      Run the reference interpreter\n  rivet check FILE          Validate and print typed register IR\n  rivet ui [--port PORT]    Start local workbench (default 7331)\n\nBuild requires Clang/Xcode command-line tools. Executables need only system libraries.\nAll listeners bind 127.0.0.1; port 0 chooses a free port. Ctrl-C stops managed servers."
         );
         return Ok(());
     }
@@ -47,40 +64,84 @@ fn run() -> Result<(), String> {
             };
             let workbench = Workbench::bind(port)?;
             println!("Rivet workbench: http://{}", workbench.address());
-            println!("Press Ctrl-C to stop the workbench and its program server.");
+            println!("Build creates persistent native artifacts. Ctrl-C stops managed processes.");
             workbench.serve(stop)
         }
-        "check" | "run" if args.len() == 2 => {
-            let mut source = String::new();
-            File::open(&args[1])
-                .map_err(|e| format!("{}: {e}", args[1]))?
-                .take(65537)
-                .read_to_string(&mut source)
-                .map_err(|e| format!("Cannot read UTF-8 program: {e}"))?;
-            let program = language::compile(&source).map_err(|errors| {
-                errors
-                    .iter()
-                    .map(|e| format!("{}: {}", e.path, e.message))
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            })?;
+        "build" if args.len() >= 4 => {
+            let program = read_program(&args[1])?;
+            let mut output: Option<PathBuf> = None;
+            let mut profile = BuildProfile::Size;
+            let mut i = 2;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "-o" if i + 1 < args.len() && output.is_none() => {
+                        output = Some(PathBuf::from(&args[i + 1]));
+                        i += 2;
+                    }
+                    "--profile" if i + 1 < args.len() => {
+                        profile = BuildProfile::parse(&args[i + 1])?;
+                        i += 2;
+                    }
+                    _ => {
+                        return Err(
+                            "Usage: rivet build FILE -o PATH [--profile size|baseline]".into()
+                        );
+                    }
+                }
+            }
+            let output = output.ok_or("Build requires -o PATH")?;
+            let artifact = native::build_native(&program, &output, profile)?;
+            println!(
+                "Executable: {}\nLLVM IR: {}\nAssembly: {}\nBuild metadata: {}\n{} bytes · {} · {} ms",
+                artifact.path.display(),
+                artifact.llvm_path.display(),
+                artifact.assembly_path.display(),
+                artifact.metadata_path.display(),
+                artifact.size_bytes,
+                artifact.target,
+                artifact.build_ms
+            );
+            Ok(())
+        }
+        "check" | "run" | "interpret" if args.len() == 2 => {
+            let program = read_program(&args[1])?;
             if args[0] == "check" {
                 println!("{}", program.disassemble());
                 return Ok(());
             }
-            match program.execute()? {
-                Execution::Console { stdout } => {
-                    print!("{stdout}");
+            if args[0] == "interpret" {
+                return match program.execute()? {
+                    Execution::Console { stdout } => {
+                        print!("{stdout}");
+                        Ok(())
+                    }
+                    Execution::Http { port, routes } => {
+                        let mut server = ProgramServer::start(port, routes)?;
+                        println!("Rivet reference server: {}", server.info(0).address);
+                        while !stop.load(Ordering::Acquire) {
+                            thread::sleep(Duration::from_millis(25));
+                        }
+                        server.stop()
+                    }
+                };
+            }
+            let directory = native::unique_directory(Path::new(".rivet/cli"), "run")?;
+            let artifact =
+                native::build_native(&program, &directory.join("program"), BuildProfile::Size)?;
+            match artifact.entry {
+                language::EntryInfo::Console => {
+                    let result = native_process::run_console(&artifact).map_err(|e| e.message)?;
+                    print!("{}", result.stdout);
+                    eprint!("{}", result.stderr);
                     Ok(())
                 }
-                Execution::Http { port, routes } => {
-                    let mut server = ProgramServer::start(port, routes)?;
-                    let info = server.info(0);
-                    println!("Rivet program server: {}", info.address);
-                    for path in info.routes {
-                        println!("GET {}{path}", info.address);
-                    }
+                language::EntryInfo::Http { .. } => {
+                    let mut server = NativeServer::start(&artifact).map_err(|e| e.message)?;
+                    println!("Rivet program server: {}", server.info(0).address);
                     while !stop.load(Ordering::Acquire) {
+                        if let Some(error) = server.poll_exit() {
+                            return Err(error.message);
+                        }
                         thread::sleep(Duration::from_millis(25));
                     }
                     server.stop()

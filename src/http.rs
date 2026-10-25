@@ -24,10 +24,17 @@ pub struct Request {
 pub struct Response {
     status: u16,
     headers: Vec<(String, String)>,
-    body: String,
+    body: Vec<u8>,
 }
 impl Response {
     pub fn from_string(body: String) -> Self {
+        Self {
+            status: 200,
+            headers: Vec::new(),
+            body: body.into_bytes(),
+        }
+    }
+    pub fn from_bytes(body: Vec<u8>) -> Self {
         Self {
             status: 200,
             headers: Vec::new(),
@@ -280,6 +287,7 @@ fn write_response(stream: &mut TcpStream, response: Response) -> io::Result<()> 
             write!(stream, "{name}: {value}\r\n")?;
         }
     }
-    write!(stream, "\r\n{}", response.body)?;
+    stream.write_all(b"\r\n")?;
+    stream.write_all(&response.body)?;
     stream.flush()
 }

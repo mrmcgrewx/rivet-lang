@@ -97,6 +97,7 @@ version = "0.1.0"
 dependencies = [
  "ctrlc",
  "httparse",
+ "libc",
  "serde",
  "serde_json",
 ]

@@ -1,19 +1,24 @@
 //! Local editor service. Build artifacts and live server state are deliberately separate.
 use crate::http::{Request, Response, Server};
 use crate::{
-    language::{self, CompiledProgram, Execution},
-    runtime::{self, ProgramServer},
+    language::{self, EntryInfo},
+    native::{self, BuildProfile, NativeArtifact},
+    native_process::{self, NativeServer},
+    runtime,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{
+    collections::BTreeMap,
+    fs,
     io::Read,
     net::SocketAddr,
+    path::{Path, PathBuf},
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
     },
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 const MAX_BODY: u64 = 512 * 1024;
@@ -24,10 +29,14 @@ struct BuildInfo {
     name: String,
     instructions: usize,
     ir: String,
+    artifact: Value,
+    llvm_ir: String,
+    assembly: String,
+    build_ms: u128,
 }
 struct Build {
     info: BuildInfo,
-    program: CompiledProgram,
+    artifact: NativeArtifact,
 }
 
 pub struct Workbench {
@@ -35,7 +44,10 @@ pub struct Workbench {
     address: SocketAddr,
     build: Option<Build>,
     next_build: u64,
-    running: Option<(u64, ProgramServer)>,
+    running: Option<(u64, NativeServer)>,
+    artifact_root: PathBuf,
+    artifacts: BTreeMap<u64, NativeArtifact>,
+    last_error: Option<String>,
     last_stdout: String,
 }
 
@@ -51,6 +63,9 @@ impl Workbench {
             next_build: 1,
             running: None,
             last_stdout: String::new(),
+            artifact_root: native::unique_directory(Path::new(".rivet/builds"), "session")?,
+            artifacts: BTreeMap::new(),
+            last_error: None,
         })
     }
     pub fn address(&self) -> SocketAddr {
@@ -71,8 +86,17 @@ impl Workbench {
         }
         Ok(())
     }
-    fn status(&self) -> Value {
-        json!({"ok":true,"build":self.build.as_ref().map(|b| &b.info),"server":self.running.as_ref().map(|(id,s)|s.info(*id)),"last_stdout":self.last_stdout})
+    fn status(&mut self) -> Value {
+        self.check_child();
+        json!({"ok":true,"build":self.build.as_ref().map(|b| &b.info),"server":self.running.as_ref().map(|(id,s)|s.info(*id)),"last_stdout":self.last_stdout,"last_error":self.last_error})
+    }
+    fn check_child(&mut self) {
+        if let Some((_, server)) = self.running.as_mut()
+            && let Some(error) = server.poll_exit()
+        {
+            self.last_error = Some(error.message);
+            self.running = None;
+        }
     }
     fn handle(&mut self, mut request: Request) {
         let allowed_hosts = [
@@ -102,6 +126,40 @@ impl Workbench {
         }
         let path = request.url().to_owned();
         if request.method() == "GET" {
+            if let Some(id) = path
+                .strip_prefix("/api/artifacts/")
+                .and_then(|value| value.parse::<u64>().ok())
+            {
+                if let Some(artifact) = self.artifacts.get(&id) {
+                    match fs::read(&artifact.path) {
+                        Ok(bytes) => {
+                            let _ = request.respond(
+                                Response::from_bytes(bytes)
+                                    .with_header(runtime::header(
+                                        "Content-Type",
+                                        "application/octet-stream",
+                                    ))
+                                    .with_header(runtime::header(
+                                        "Content-Disposition",
+                                        "attachment; filename=\"rivet-program\"",
+                                    ))
+                                    .with_header(runtime::header("Cache-Control", "no-store"))
+                                    .with_header(runtime::header(
+                                        "X-Content-Type-Options",
+                                        "nosniff",
+                                    )),
+                            );
+                        }
+                        Err(e) => {
+                            send_json(request, 404, error(&format!("Artifact unavailable: {e}")))
+                        }
+                    }
+                } else {
+                    send_json(request, 404, error("Unknown artifact"));
+                }
+                return;
+            }
+
             match path.as_str() {
                 "/" => send(
                     request,
@@ -179,6 +237,7 @@ impl Workbench {
         send_json(request, status, response);
     }
     fn dispatch(&mut self, path: &str, body: &str) -> (u16, Value) {
+        self.check_child();
         match path {
             "/api/build" => {
                 #[derive(Deserialize)]
@@ -194,15 +253,36 @@ impl Workbench {
                 self.build = None;
                 match language::compile(&input.source) {
                     Ok(program) => {
+                        let id = self.next_build;
+                        self.next_build += 1;
+                        let output = self.artifact_root.join(id.to_string()).join("program");
+                        let artifact =
+                            match native::build_native(&program, &output, BuildProfile::Size) {
+                                Ok(artifact) => artifact,
+                                Err(e) => return (400, error(&e)),
+                            };
+                        let llvm_ir = match fs::read_to_string(&artifact.llvm_path) {
+                            Ok(value) => value,
+                            Err(e) => return (500, error(&e.to_string())),
+                        };
+                        let assembly = match fs::read_to_string(&artifact.assembly_path) {
+                            Ok(value) => value,
+                            Err(e) => return (500, error(&e.to_string())),
+                        };
                         let info = BuildInfo {
-                            id: self.next_build,
-                            name: program.name().to_string(),
+                            id,
+                            name: program.name().to_owned(),
                             instructions: program.instruction_count(),
                             ir: program.disassemble(),
+                            artifact: json!({"path":artifact.path,"size_bytes":artifact.size_bytes,"profile":artifact.profile,"target":artifact.target,"download_url":format!("/api/artifacts/{id}")}),
+                            llvm_ir,
+                            assembly,
+                            build_ms: artifact.build_ms,
                         };
-                        self.next_build += 1;
+                        self.last_error = None;
                         let response = json!({"ok":true,"build":info,"diagnostics":[]});
-                        self.build = Some(Build { info, program });
+                        self.artifacts.insert(id, artifact.clone());
+                        self.build = Some(Build { info, artifact });
                         (200, response)
                     }
                     Err(diagnostics) => (
@@ -233,26 +313,32 @@ impl Workbench {
                 if build.info.id != input.build_id {
                     return (409, error("Build is stale; build the current source again"));
                 }
-                let started = Instant::now();
-                match build.program.execute() {
-                    Ok(Execution::Console { stdout }) => {
-                        self.last_stdout = stdout.clone();
-                        (
-                            200,
-                            json!({"ok":true,"kind":"console","stdout":stdout,"elapsed_us":started.elapsed().as_micros()}),
-                        )
-                    }
-                    Ok(Execution::Http { port, routes }) => {
-                        match ProgramServer::start(port, routes) {
-                            Ok(server) => {
-                                let info = server.info(build.info.id);
-                                self.running = Some((build.info.id, server));
-                                (200, json!({"ok":true,"kind":"http","server":info}))
-                            }
-                            Err(e) => (400, error(&e)),
+                self.last_error = None;
+                match &build.artifact.entry {
+                    EntryInfo::Console => match native_process::run_console(&build.artifact) {
+                        Ok(result) => {
+                            self.last_stdout = result.stdout.clone();
+                            (
+                                200,
+                                json!({"ok":true,"kind":"console","stdout":result.stdout,"stderr":result.stderr,"exit_code":result.exit_code,"elapsed_us":result.elapsed_us}),
+                            )
                         }
-                    }
-                    Err(e) => (400, error(&e)),
+                        Err(e) => (
+                            400,
+                            json!({"ok":false,"error":e.message,"stderr":e.stderr,"exit_code":e.exit_code,"diagnostics":[]}),
+                        ),
+                    },
+                    EntryInfo::Http { .. } => match NativeServer::start(&build.artifact) {
+                        Ok(server) => {
+                            let info = server.info(build.info.id);
+                            self.running = Some((build.info.id, server));
+                            (200, json!({"ok":true,"kind":"http","server":info}))
+                        }
+                        Err(e) => (
+                            400,
+                            json!({"ok":false,"error":e.message,"stderr":e.stderr,"exit_code":e.exit_code,"diagnostics":[]}),
+                        ),
+                    },
                 }
             }
             "/api/stop" => {

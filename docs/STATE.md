@@ -34,3 +34,9 @@ The user clarified that native compilation is core to completion. Interpreter-on
 ## Material limitations
 
 Straight-line language: no branching, loops, functions, native code generation, persistent storage, or request-dependent computations. HTTP JSON is computed at server startup. Sequential HTTP/1.x subset: one request per connection, no chunked request bodies, TLS, or production hosting. Two-second total request read deadline; loopback only. Editor state is memory-only; download before reload. Browser verification targets Chromium/macOS arm64. Duplicate JSON object keys currently use last-value semantics; duplicate instruction IDs and route paths are rejected.
+
+## Native implementation checkpoint
+
+Native LLVM lowering, embedded C support, Clang build orchestration, persistent artifacts, CLI build/run/interpret, OS-child lifecycle, and workbench native execution/download are implemented. All eight new LLVM/differential tests and four artifact tests pass; existing Rust suite remains green. Copied console and HTTP executables run in an empty directory with cleared environment and nonexistent PATH after the workbench closes and original artifact is removed. Native HTTP matches reference JSON including NUL/Unicode and i64 extrema in both profiles. C helper/network harnesses pass baseline, size, and UBSan; ASan initialization failed on the host and is not claimed.
+
+Remaining: finish native UI/browser acceptance, independent review, new native efficiency measurement, updated reproduction docs, and clean-checkout verification. No corrected milestone is marked fully complete yet.

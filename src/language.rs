@@ -5,6 +5,8 @@ use serde_json::{Map, Value};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Write};
 
+mod native_codegen;
+
 const MAX_SOURCE_BYTES: usize = 64 * 1024;
 const MAX_INSTRUCTIONS: usize = 256;
 const MAX_NAME_BYTES: usize = 128;
@@ -31,6 +33,14 @@ pub struct Route {
     pub path: String,
     pub status: u16,
     pub body: Value,
+}
+
+/// Entry metadata available without evaluating the compiled program.
+#[derive(Clone, Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "lowercase")]
+pub enum EntryInfo {
+    Console,
+    Http { port: u16, routes: Vec<String> },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -702,6 +712,21 @@ impl CompiledProgram {
 
     pub fn instruction_count(&self) -> usize {
         self.instructions.len()
+    }
+
+    /// Lower the validated typed registers to LLVM IR for native compilation.
+    pub fn emit_llvm(&self) -> String {
+        native_codegen::emit(self)
+    }
+
+    pub fn entry_info(&self) -> EntryInfo {
+        match &self.entry {
+            Entry::Console(_) => EntryInfo::Console,
+            Entry::Http { port, routes } => EntryInfo::Http {
+                port: *port,
+                routes: routes.iter().map(|route| route.path.clone()).collect(),
+            },
+        }
     }
 
     /// A stable, human-readable dump of the indexed typed executable representation.
