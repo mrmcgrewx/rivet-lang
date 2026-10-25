@@ -1,0 +1,321 @@
+{
+  "method": "Prebuilt release compilers; unchanged median source and speed profile. One discarded warmup then seven measured builds per version. Shuffle the two versions each round with seed20261025. Metadata build_ms measures the native build; outer wall time is recorded separately. No concurrent tests or profiling.",
+  "revisions": {
+    "before": "b72a8bd569f217ce9ce31358c261fe0e099b94f5",
+    "after": "c279276de3866f1e918fc8394900abde62208b1c"
+  },
+  "compiler_sha256": {
+    "before": "9e532a31c3bdec03e68b762749e76361637177cea6d2dfe3d85a35f2b424635d",
+    "after": "18464099aa2636621208c907d55c388ef923b3d32ee748e748a078e9a8d2f563"
+  },
+  "raw": [
+    {
+      "version": "before",
+      "trial": -1,
+      "phase": "warmup",
+      "command": [
+        "/private/tmp/rivet-median-clean.LHXMoE/target/release/rivet",
+        "build",
+        "/private/tmp/rivet-median-clean.LHXMoE/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/before--1",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 290,
+      "outer_wall_ms": 294.6335,
+      "artifact_bytes": 34792
+    },
+    {
+      "version": "after",
+      "trial": -1,
+      "phase": "warmup",
+      "command": [
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/target/release/rivet",
+        "build",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/after--1",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 319,
+      "outer_wall_ms": 323.767542,
+      "artifact_bytes": 34808
+    },
+    {
+      "version": "before",
+      "trial": 0,
+      "phase": "measure",
+      "command": [
+        "/private/tmp/rivet-median-clean.LHXMoE/target/release/rivet",
+        "build",
+        "/private/tmp/rivet-median-clean.LHXMoE/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/before-0",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 302,
+      "outer_wall_ms": 306.326958,
+      "artifact_bytes": 34792
+    },
+    {
+      "version": "after",
+      "trial": 0,
+      "phase": "measure",
+      "command": [
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/target/release/rivet",
+        "build",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/after-0",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 327,
+      "outer_wall_ms": 331.731708,
+      "artifact_bytes": 34808
+    },
+    {
+      "version": "after",
+      "trial": 1,
+      "phase": "measure",
+      "command": [
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/target/release/rivet",
+        "build",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/after-1",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 309,
+      "outer_wall_ms": 313.730917,
+      "artifact_bytes": 34808
+    },
+    {
+      "version": "before",
+      "trial": 1,
+      "phase": "measure",
+      "command": [
+        "/private/tmp/rivet-median-clean.LHXMoE/target/release/rivet",
+        "build",
+        "/private/tmp/rivet-median-clean.LHXMoE/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/before-1",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 288,
+      "outer_wall_ms": 293.174667,
+      "artifact_bytes": 34792
+    },
+    {
+      "version": "after",
+      "trial": 2,
+      "phase": "measure",
+      "command": [
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/target/release/rivet",
+        "build",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/after-2",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 322,
+      "outer_wall_ms": 326.853,
+      "artifact_bytes": 34808
+    },
+    {
+      "version": "before",
+      "trial": 2,
+      "phase": "measure",
+      "command": [
+        "/private/tmp/rivet-median-clean.LHXMoE/target/release/rivet",
+        "build",
+        "/private/tmp/rivet-median-clean.LHXMoE/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/before-2",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 298,
+      "outer_wall_ms": 302.5295,
+      "artifact_bytes": 34792
+    },
+    {
+      "version": "before",
+      "trial": 3,
+      "phase": "measure",
+      "command": [
+        "/private/tmp/rivet-median-clean.LHXMoE/target/release/rivet",
+        "build",
+        "/private/tmp/rivet-median-clean.LHXMoE/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/before-3",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 295,
+      "outer_wall_ms": 300.079333,
+      "artifact_bytes": 34792
+    },
+    {
+      "version": "after",
+      "trial": 3,
+      "phase": "measure",
+      "command": [
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/target/release/rivet",
+        "build",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/after-3",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 316,
+      "outer_wall_ms": 321.096958,
+      "artifact_bytes": 34808
+    },
+    {
+      "version": "after",
+      "trial": 4,
+      "phase": "measure",
+      "command": [
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/target/release/rivet",
+        "build",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/after-4",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 332,
+      "outer_wall_ms": 337.075084,
+      "artifact_bytes": 34808
+    },
+    {
+      "version": "before",
+      "trial": 4,
+      "phase": "measure",
+      "command": [
+        "/private/tmp/rivet-median-clean.LHXMoE/target/release/rivet",
+        "build",
+        "/private/tmp/rivet-median-clean.LHXMoE/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/before-4",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 306,
+      "outer_wall_ms": 311.358834,
+      "artifact_bytes": 34792
+    },
+    {
+      "version": "before",
+      "trial": 5,
+      "phase": "measure",
+      "command": [
+        "/private/tmp/rivet-median-clean.LHXMoE/target/release/rivet",
+        "build",
+        "/private/tmp/rivet-median-clean.LHXMoE/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/before-5",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 296,
+      "outer_wall_ms": 301.576708,
+      "artifact_bytes": 34792
+    },
+    {
+      "version": "after",
+      "trial": 5,
+      "phase": "measure",
+      "command": [
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/target/release/rivet",
+        "build",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/after-5",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 309,
+      "outer_wall_ms": 313.752334,
+      "artifact_bytes": 34808
+    },
+    {
+      "version": "before",
+      "trial": 6,
+      "phase": "measure",
+      "command": [
+        "/private/tmp/rivet-median-clean.LHXMoE/target/release/rivet",
+        "build",
+        "/private/tmp/rivet-median-clean.LHXMoE/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/before-6",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 304,
+      "outer_wall_ms": 309.297083,
+      "artifact_bytes": 34792
+    },
+    {
+      "version": "after",
+      "trial": 6,
+      "phase": "measure",
+      "command": [
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/target/release/rivet",
+        "build",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-optimization-clean.9ietc1rr/examples/median-two-sorted-arrays.rvb",
+        "-o",
+        "/var/folders/_k/3wzd0z6167n5vrz21mh4p9n00000gp/T/rivet-build-comparison.vbrmtm75/after-6",
+        "--profile",
+        "speed"
+      ],
+      "build_ms": 320,
+      "outer_wall_ms": 324.604583,
+      "artifact_bytes": 34808
+    }
+  ],
+  "summary": {
+    "before": {
+      "build_ms": {
+        "min": 288,
+        "median": 298,
+        "max": 306
+      },
+      "outer_wall_ms": {
+        "min": 293.174667,
+        "median": 302.5295,
+        "max": 311.358834
+      },
+      "artifact_bytes": {
+        "min": 34792,
+        "median": 34792,
+        "max": 34792
+      }
+    },
+    "after": {
+      "build_ms": {
+        "min": 309,
+        "median": 320,
+        "max": 332
+      },
+      "outer_wall_ms": {
+        "min": 313.730917,
+        "median": 324.604583,
+        "max": 337.075084
+      },
+      "artifact_bytes": {
+        "min": 34808,
+        "median": 34808,
+        "max": 34808
+      }
+    }
+  }
+}

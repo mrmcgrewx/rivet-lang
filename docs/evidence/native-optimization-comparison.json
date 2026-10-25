@@ -1,0 +1,59 @@
+{
+  "format": "rivet-native-optimization-comparison-v1",
+  "before_revision": "b72a8bd569f217ce9ce31358c261fe0e099b94f5",
+  "after_revision": "c279276de3866f1e918fc8394900abde62208b1c",
+  "before_report_sha256": "7ff86d5a2857c904a8bc2615fd83a924c907837caa3e948d112a502488c3f013",
+  "after_report_sha256": "68329605266a7ba51555930e07f622a4c3fcc3748891bfba5d0a743c41f55ae2",
+  "checks": {
+    "corpus_matches_before_after_and_historical": true,
+    "parameters_match_before_after_and_historical": true,
+    "randomized_orders_match": true,
+    "standalone_verification_matches": true,
+    "clean_checkouts": true,
+    "unchanged_source_and_benchmark_hashes": true,
+    "81_source_tick_sites_retained": true,
+    "executed_tick_vectors_match": true,
+    "randomized_orders_match_historical": true
+  },
+  "unchanged_file_hashes": {
+    "examples/median-two-sorted-arrays.rvb": "5bcc49fdc4a42226dd188d5068c0d8b9183970950edea77d94faacb9d4198c12",
+    "scripts/median_benchmark.py": "780e7e2c61dbe879cf00e1293dbbd0abb9382a15509e22cb820a0210981eedc7",
+    "benchmarks/median/partition.c": "9255273d651d337038f991c4d741525343b3f69d028e8386d16bb66f916df776",
+    "benchmarks/median/preloaded.c": "048524c157950b7650bbe45dcacac0682da5dbb1c2a09f153728f927ee2a55ee",
+    "benchmarks/median/standalone.c": "8dddc215ca4b769bd8e3d25eb6fc486b7970b90327edde3637bea9e728cc3142",
+    "benchmarks/median/partition.h": "22d13bf2bc46af7e50b963a14dddac127178f748e227f5040afafcf7e07267f7",
+    "benchmarks/median/median.py": "4dc1961788cf253bf80d754f89df38737f2d65cbba2e673a42dc0651b36053a8"
+  },
+  "rivet_speedup": {
+    "tiny": 5.485972365794107,
+    "balanced_1000": 5.372299064902671,
+    "asymmetric": 5.418977298420867,
+    "empty_side": 5.452937663060276,
+    "disjoint": 5.1764746807407,
+    "duplicates": 5.006262479806677,
+    "interleaved": 4.563363556003179,
+    "negative": 5.573580171620739
+  },
+  "control_language_preloaded_drift_percent": {
+    "c": {
+      "tiny": 0.6345797129747144,
+      "balanced_1000": -0.5132847688303244,
+      "asymmetric": 0.07004202521512237,
+      "empty_side": 1.3313363288400826,
+      "disjoint": 0.12935866846810473,
+      "duplicates": -0.061776061776053215,
+      "interleaved": 0.013297872340434225,
+      "negative": 0.5928509154315531
+    },
+    "python": {
+      "tiny": 0.17540881240631911,
+      "balanced_1000": 0.10093429131849962,
+      "asymmetric": 0.057109097517504814,
+      "empty_side": 0.349920963550443,
+      "disjoint": -0.5018912180040358,
+      "duplicates": 0.8912212369955874,
+      "interleaved": 0.11327702314234411,
+      "negative": 1.0038303760610656
+    }
+  }
+}

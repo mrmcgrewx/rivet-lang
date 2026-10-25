@@ -204,7 +204,7 @@ The workbench itself needs no Node.js or frontend build. Binary tests cover malf
 
 Native profiles offer explicit tradeoffs: default `size` uses Clang `-Oz` plus linker dead stripping, `baseline` uses identical generated LLVM and support at `-O0`, and `speed` uses `-O3` plus dead stripping. All preserve semantic/runtime checks. Run `python3 scripts/median_benchmark.py` after building the release compiler for median runtime and peak-memory comparisons with C and Python; see the [measurement method](docs/MEDIAN-BENCHMARK-METHOD.md). Run `python3 scripts/native_benchmark.py` for the original RVB1 file-size comparison. [Earlier RVB1 measurements](docs/BINARY-BENCHMARK.json) remain historical and do not establish current sizes or broader language efficiency.
 
-The first [median measurements](docs/MEDIAN-BENCHMARK-RESULTS.md) on an Apple M1 Pro found 558.91 ns/query for Rivet, 34.19 ns for C and 1439.22 ns for Python on the balanced 1000 + 1000 family in a warmed preloaded harness. Rivet was 2.58× faster than Python and 16.35× slower than C for that case distribution. Whole-process timing and RSS are reported separately. These results include Rivet's checks and harness overhead; they do not establish performance across other algorithms or language-wide superiority.
+The [native fuel optimization](docs/NATIVE-OPTIMIZATION-RESULTS.md) reduced balanced 1000 + 1000 median search from **559.45 to 104.14 ns/query** on an Apple M1 Pro, a **5.37× improvement** in the same warmed preloaded benchmark. Fresh C and Python controls measured 34.47 and 1443.81 ns/query: C's advantage narrowed from about 16× to **3.02×**. The compiler makes the existing instruction-budget check visible to LLVM; all safety limits and failure ordering remain. All eight measured input families improved by 4.56×–5.57×. Whole-process peak RSS for the balanced Rivet case stayed at 1.406 MiB; the executable grew by 16 bytes and median native build time rose by 22 ms. Search timing, process latency and RSS are separate scopes. [Original measurements](docs/MEDIAN-BENCHMARK-RESULTS.md) remain historical evidence. These results do not establish performance across other algorithms or language-wide superiority.
 
 ## Scope
 
@@ -221,6 +221,7 @@ HTTP is a local experimental subset: IPv4 loopback, exact GET routes, sequential
 - [Median algorithm](docs/MEDIAN.md)
 - [Comparative benchmark method](docs/MEDIAN-BENCHMARK-METHOD.md)
 - [Measured runtime and memory results](docs/MEDIAN-BENCHMARK-RESULTS.md)
+- [Native optimization: before/after results](docs/NATIVE-OPTIMIZATION-RESULTS.md)
 - [Capability and performance roadmap](docs/ROADMAP.md)
 - [Language semantics](docs/LANGUAGE.md)
 - [Architecture and runtime boundary](docs/ARCHITECTURE.md)
