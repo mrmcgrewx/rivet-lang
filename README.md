@@ -122,7 +122,7 @@ printf '2 1 2 2 3 4\n' | ./median
 # 2.5000000000000000e+00 (2.5)
 ```
 
-Input is two count-prefixed sorted arrays. The workbench has the same example and accepts different inputs using one build. Search takes O(log(min(m,n)+1)) time and O(1) auxiliary storage; reading/storing stdin adds O(m+n). Sortedness and the problem's element range are caller preconditions. This exercise adds reusable finite binary64 values, conversions, arithmetic and scalar output. See the [algorithm walkthrough](docs/MEDIAN.md) and [runtime/memory comparison method](docs/MEDIAN-BENCHMARK-METHOD.md).
+Input is two count-prefixed sorted arrays. The workbench has the same example and accepts different inputs using one build. Search takes O(log(min(m,n)+1)) time and O(1) auxiliary storage; reading/storing stdin adds O(m+n). Sortedness and the problem's element range are caller preconditions. This exercise adds reusable finite binary64 values, conversions, arithmetic and scalar output. See the [algorithm walkthrough](docs/MEDIAN.md), [runtime/memory comparison results](docs/MEDIAN-BENCHMARK-RESULTS.md), and [measurement method](docs/MEDIAN-BENCHMARK-METHOD.md).
 
 ### Standalone HTTP server
 
@@ -204,6 +204,8 @@ The workbench itself needs no Node.js or frontend build. Binary tests cover malf
 
 Native profiles offer explicit tradeoffs: default `size` uses Clang `-Oz` plus linker dead stripping, `baseline` uses identical generated LLVM and support at `-O0`, and `speed` uses `-O3` plus dead stripping. All preserve semantic/runtime checks. Run `python3 scripts/median_benchmark.py` after building the release compiler for median runtime and peak-memory comparisons with C and Python; see the [measurement method](docs/MEDIAN-BENCHMARK-METHOD.md). Run `python3 scripts/native_benchmark.py` for the original RVB1 file-size comparison. [Earlier RVB1 measurements](docs/BINARY-BENCHMARK.json) remain historical and do not establish current sizes or broader language efficiency.
 
+The first [median measurements](docs/MEDIAN-BENCHMARK-RESULTS.md) on an Apple M1 Pro found 558.91 ns/query for Rivet, 34.19 ns for C and 1439.22 ns for Python on the balanced 1000 + 1000 family in a warmed preloaded harness. Rivet was 2.58× faster than Python and 16.35× slower than C for that case distribution. Whole-process timing and RSS are reported separately. These results include Rivet's checks and harness overhead; they do not establish performance across other algorithms or language-wide superiority.
+
 ## Scope
 
 RVB2 supports branches and loops within one computation; it does not yet support user-defined functions, recursion, persistent storage, or HTTP request-dependent values. RVB1 HTTP responses are computed at startup. Source is limited to 64 KiB and 256 instructions. RVB2 additionally bounds execution to one million instructions, arrays/maps/list chains to 10,000 elements/entries/nodes, runtime input to 256 KiB and logical cumulative allocations to 64 MiB. [Exact resource bounds](docs/LANGUAGE.md#resource-limits) are documented separately.
@@ -218,6 +220,7 @@ HTTP is a local experimental subset: IPv4 loopback, exact GET routes, sequential
 - [Add Two Numbers algorithm](docs/ADD-TWO-NUMBERS.md)
 - [Median algorithm](docs/MEDIAN.md)
 - [Comparative benchmark method](docs/MEDIAN-BENCHMARK-METHOD.md)
+- [Measured runtime and memory results](docs/MEDIAN-BENCHMARK-RESULTS.md)
 - [Capability and performance roadmap](docs/ROADMAP.md)
 - [Language semantics](docs/LANGUAGE.md)
 - [Architecture and runtime boundary](docs/ARCHITECTURE.md)
