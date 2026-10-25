@@ -1,9 +1,11 @@
 # Project state
 
-State version: 10. Updated: 2026-10-25.
+State version: 11. Updated: 2026-10-25.
 Public repository: https://github.com/mrmcgrewx/rivet-lang
 
 ## Current objective and implementation
+
+New work in progress: solve LeetCode Two Sum in authored binary Rivet source. `TWO-SUM-PLAN.md` fixes the RVB2 control-flow/input/array/map extension, ownership, interfaces and acceptance before delegation. Existing binary/native milestones below remain verified foundations; the new milestone is not yet implemented or validated.
 
 The user requires actual binary files as authored source. The previous JSON-source design was not the intended experiment; its completion claims are historical. Native compilation remains required. Current source is RVB1 `.rvb` binary records with numeric opcodes, type tags, positional register references and literal/entry payloads. The direct decoder constructs typed IR without JSON, then the established LLVM/Clang path produces native executables.
 
