@@ -10,7 +10,7 @@
     <script src="/app.js" defer></script>
   </head>
   <body>
-    <a class="skip-link" href="#source">Skip to program editor</a>
+    <a class="skip-link" href="#source">Skip to source inspection</a>
     <header class="app-header">
       <a class="brand" href="/" aria-label="Rivet workbench home">
         <svg
@@ -53,7 +53,7 @@
           <p class="loading-copy">Loading examples…</p>
         </nav>
         <button id="new-program" class="sidebar-action" type="button">
-          <span aria-hidden="true">＋</span> New program
+          <span aria-hidden="true">＋</span> New binary source
         </button>
         <div class="sidebar-rule"></div>
         <div class="section-label">PROGRAM FILE</div>
@@ -61,25 +61,24 @@
           <svg viewBox="0 0 20 20" aria-hidden="true">
             <path d="M2.5 5.5h5l2-2h4l2 3H18l-2 10H2.5z" />
           </svg>
-          Open file <span class="action-arrow" aria-hidden="true">↗</span>
+          Open binary <span class="action-arrow" aria-hidden="true">↗</span>
         </button>
         <button id="download-program" class="sidebar-action" type="button">
           <svg viewBox="0 0 20 20" aria-hidden="true">
             <path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4" />
           </svg>
-          Download source <span class="action-arrow" aria-hidden="true">↓</span>
+          Download binary source <span class="action-arrow" aria-hidden="true">↓</span>
         </button>
         <input
           id="file-input"
           type="file"
-          accept=".json,.rivet,application/json"
+          accept=".rvb,application/octet-stream"
           hidden
         />
         <div class="language-note">
           <span class="note-icon" aria-hidden="true">↳</span>
           <p>
-            <strong>Rivet v1</strong>A typed dataflow language.<br />JSON source
-            → LLVM → native executable.
+            <strong>RVB1 binary source</strong>Numeric instructions and typed registers.<br />Binary source → LLVM → native executable.
           </p>
         </div>
         <div class="sidebar-footer">
@@ -90,8 +89,8 @@
       <main>
         <div class="workspace-heading">
           <div>
-            <p class="eyebrow">THE EDIT · BUILD · RUN LOOP</p>
-            <h1>Program workspace</h1>
+            <p class="eyebrow">BINARY SOURCE · NATIVE EXECUTION</p>
+            <h1>Binary program workspace</h1>
           </div>
           <div class="workflow" aria-label="Workflow">
             <span><b>01</b> Edit</span><i aria-hidden="true">/</i
@@ -105,10 +104,18 @@
           <div class="editor-panel">
             <div class="panel-header editor-header">
               <div class="panel-title">
-                <span class="file-icon" aria-hidden="true">{ }</span>
-                <h2 id="program-name">Untitled program</h2>
+                <span class="file-icon" aria-hidden="true">01</span>
+                <h2 id="program-name">untitled.rvb</h2>
               </div>
               <span id="source-badge" class="badge neutral">Unbuilt</span>
+            </div>
+            <div class="source-view-toolbar">
+              <label class="eyebrow" for="source-view">SOURCE VIEW</label>
+              <select id="source-view" aria-label="Source view">
+                <option value="decoded">Decoded program</option>
+                <option value="hex">Hex bytes</option>
+              </select>
+              <span id="inspection-status" role="status">Loading binary source…</span>
             </div>
             <div class="editor-wrap">
               <div id="line-numbers" class="line-numbers" aria-hidden="true">
@@ -116,7 +123,8 @@
               </div>
               <textarea
                 id="source"
-                aria-label="Program source"
+                aria-label="Decoded program"
+                readonly
                 spellcheck="false"
                 autocapitalize="off"
                 autocomplete="off"
@@ -126,9 +134,27 @@
               ></textarea>
             </div>
             <div class="editor-footer">
-              <span id="source-help">JSON <span>·</span> Rivet v1</span
-              ><span id="source-stats">1 line · 0 B</span>
+              <span id="source-help">Decoded from RVB1 bytes · Read-only view</span
+              ><span id="source-stats">0 bytes</span>
             </div>
+            <section id="binary-editors" class="binary-editors" aria-label="Binary value editor" hidden>
+              <div id="literal-editor" hidden>
+                <label for="literal-select" class="eyebrow">EDIT A LITERAL</label>
+                <select id="literal-select" aria-label="Literal instruction"></select>
+                <label id="literal-label" for="literal-value">Literal value</label>
+                <textarea id="literal-value" aria-label="Literal value" spellcheck="false" rows="2"></textarea>
+                <div class="binary-edit-actions">
+                  <span id="literal-location"></span>
+                  <button id="apply-literal" class="button button-secondary" type="button">Apply value</button>
+                </div>
+              </div>
+              <div id="port-editor" class="port-editor" hidden>
+                <label for="source-port">Server port</label>
+                <input id="source-port" type="number" min="0" max="65535" step="1" aria-label="Server port" />
+                <button id="apply-port" class="button button-secondary" type="button">Apply port</button>
+              </div>
+              <p class="binary-edit-help">Edits update the binary source bytes. Use Hex bytes to edit any instruction or operand.</p>
+            </section>
           </div>
           <div class="results-panel">
             <div
@@ -436,8 +462,8 @@ Send a request to inspect the real HTTP response.</pre>
         </section>
         <footer class="workspace-footer">
           <span
-            ><span class="footer-mark" aria-hidden="true">◆</span> Explicit
-            source. Observable execution.</span
+            ><span class="footer-mark" aria-hidden="true">◆</span> Binary
+            source. Decoded for inspection.</span
           ><span
             >Rivet is experimental <span class="footer-separator">/</span> Built
             locally, run locally.</span

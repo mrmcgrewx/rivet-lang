@@ -28,13 +28,13 @@ fn main() -> ExitCode {
     }
 }
 fn read_program(file: &str) -> Result<CompiledProgram, String> {
-    let mut source = String::new();
+    let mut source = Vec::new();
     File::open(file)
         .map_err(|e| format!("{file}: {e}"))?
         .take(65537)
-        .read_to_string(&mut source)
-        .map_err(|e| format!("Cannot read UTF-8 program: {e}"))?;
-    language::compile(&source).map_err(|errors| {
+        .read_to_end(&mut source)
+        .map_err(|e| format!("Cannot read binary program: {e}"))?;
+    language::compile_binary(&source).map_err(|errors| {
         errors
             .iter()
             .map(|e| format!("{}: {}", e.path, e.message))
@@ -46,7 +46,7 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.is_empty() || args == ["--help"] || args == ["help"] {
         println!(
-            "Rivet — native typed dataflow compiler\n\n  rivet build FILE -o PATH [--profile size|baseline]\n                            Build a standalone executable and inspectable LLVM/assembly\n  rivet run FILE            Build and launch native executable\n  rivet interpret FILE      Run the reference interpreter\n  rivet check FILE          Validate and print typed register IR\n  rivet ui [--port PORT]    Start local workbench (default 7331)\n\nBuild requires Clang/Xcode command-line tools. Executables need only system libraries.\nAll listeners bind 127.0.0.1; port 0 chooses a free port. Ctrl-C stops managed servers."
+            "Rivet — binary source native compiler (RVB1)\n\n  rivet build FILE -o PATH [--profile size|baseline]\n                            Build a standalone executable and inspectable LLVM/assembly\n  rivet run FILE            Build and launch native executable\n  rivet interpret FILE      Run the reference interpreter\n  rivet inspect FILE        Decode binary source to a readable view\n  rivet check FILE          Validate and print typed register IR\n  rivet ui [--port PORT]    Start local workbench (default 7331)\n\nSource files are binary RVB1 (.rvb). JSON/text source is not accepted.\nBuild requires Clang/Xcode command-line tools. Executables need only system libraries.\nAll listeners bind 127.0.0.1; port 0 chooses a free port. Ctrl-C stops managed servers."
         );
         return Ok(());
     }
@@ -103,9 +103,9 @@ fn run() -> Result<(), String> {
             );
             Ok(())
         }
-        "check" | "run" | "interpret" if args.len() == 2 => {
+        "inspect" | "check" | "run" | "interpret" if args.len() == 2 => {
             let program = read_program(&args[1])?;
-            if args[0] == "check" {
+            if args[0] == "check" || args[0] == "inspect" {
                 println!("{}", program.disassemble());
                 return Ok(());
             }

@@ -13,6 +13,10 @@ jobs:
         run: |
           cargo fmt --check
           cargo clippy --locked --all-targets -- -D warnings
+      - name: Verify directly authored binary fixtures
+        run: |
+          python3 scripts/write_binary_examples.py
+          git diff --exit-code -- examples/
       - name: Compiler, runtime, and API tests
         run: cargo test --locked
       - name: Native support and undefined-behavior checks

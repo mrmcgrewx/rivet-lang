@@ -18,8 +18,8 @@ import time
 import urllib.request
 
 
-def verify(executable, source, expected):
-    if source['entry']['kind'] == 'console':
+def verify(executable, is_console, expected):
+    if is_console:
         result = subprocess.run([str(executable)], capture_output=True, timeout=5, check=True)
         assert result.stdout == expected and not result.stderr
         return
@@ -32,11 +32,11 @@ def verify(executable, source, expected):
         ready = process.stdout.readline().strip()
         assert ready.startswith(prefix), (ready, process.poll())
         base = ready[len(prefix):].decode()
-        for route in source['entry']['routes']:
-            with urllib.request.urlopen(base + route['path'], timeout=3) as response:
-                assert response.status == route['status']
+        for path, expected_body in expected.items():
+            with urllib.request.urlopen(base + path, timeout=3) as response:
+                assert response.status == 200
                 assert response.headers.get_content_type() == 'application/json'
-                assert json.load(response) == expected[route['path']]
+                assert json.load(response) == expected_body
     finally:
         if process.poll() is None:
             process.send_signal(signal.SIGTERM)
@@ -61,7 +61,7 @@ def main():
     root = Path(__file__).resolve().parents[1]
     rivet = Path(args.rivet).resolve()
     clang = os.environ.get('RIVET_CLANG', 'clang')
-    report = {'objective': 'standalone executable file bytes, exact v1 semantics',
+    report = {'objective': 'standalone executable file bytes, RVB1 binary sources and exact v1 semantics',
               'baseline': 'same generated LLVM and runtime, -O0, no requested linker stripping',
               'candidate': 'same generated LLVM and runtime, -Oz, linker dead-code stripping',
               'host': {'system': platform.system(), 'machine': platform.machine(),
@@ -73,11 +73,14 @@ def main():
     with tempfile.TemporaryDirectory(prefix='rivet-native-size-') as folder:
         folder = Path(folder)
         for example in ['hello', 'server', 'computed']:
-            source = json.loads((root / 'examples' / f'{example}.rivet.json').read_text())
-            if source['entry']['kind'] == 'http':
-                source['entry']['port'] = 0
-            file = folder / f'{example}.json'
-            file.write_text(json.dumps(source, ensure_ascii=False))
+            source = bytearray((root / 'examples' / f'{example}.rvb').read_bytes())
+            if source[10] == 2:
+                offset = 16
+                for _ in range(int.from_bytes(source[8:10], 'little')):
+                    offset += 4 + int.from_bytes(source[offset+2:offset+4], 'little')
+                source[offset:offset+2] = b'\0\0'  # ephemeral HTTP port
+            file = folder / f'{example}.rvb'
+            file.write_bytes(source)
             expected = {'server': {'/hello': {'message': 'hello world'}},
                         'computed': {'/computed': {'details': {'answer': 42, 'ready': True},
                                                   'message': 'The answer is 42'}}}.get(example)
@@ -98,7 +101,7 @@ def main():
                     if canonical_ir is None:
                         canonical_ir = ir
                     assert ir == canonical_ir, 'Profiles must compile identical LLVM input'
-                    verify(output, source, expected)
+                    verify(output, source[10] == 1, expected)
                     samples.append({'bytes': output.stat().st_size, 'build_ms': round(build_ms, 3)})
                 row['profiles'][profile] = {'samples': samples,
                     'median_bytes': int(statistics.median(item['bytes'] for item in samples)),

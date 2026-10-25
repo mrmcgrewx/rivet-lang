@@ -1,5 +1,7 @@
 # Native artifact milestone — revised completion contract
 
+**Binary-source update:** `BINARY-PLAN.md` and `BINARY-FORMAT.md` supersede JSON source and source API details here. Native backend/runtime evidence remains relevant; current end-to-end acceptance is recorded in `BINARY-VALIDATION.md`.
+
 Updated 2026-10-25. This supersedes interpreter-only completion claims in the historical v0 validation. Native compilation is required, not optional follow-up work. Preserve existing source semantics, validator, reference interpreter, and workbench foundations.
 
 ## Design and rationale

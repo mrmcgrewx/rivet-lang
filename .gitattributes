@@ -1,0 +1,2 @@
+# RVB files are canonical binary program source, not text to normalize or merge.
+*.rvb binary

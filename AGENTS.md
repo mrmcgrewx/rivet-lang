@@ -1,6 +1,6 @@
 # Project instructions
 
-Read `docs/BRIEF.md`, `docs/ARCHITECTURE.md`, `docs/NATIVE-PLAN.md`, and `docs/STATE.md` before starting work. Follow the machine's applicable GitHub identity instructions; keep credentials and private machine instructions outside this repository.
+Read `docs/BRIEF.md`, `docs/ARCHITECTURE.md`, `docs/NATIVE-PLAN.md`, `docs/BINARY-PLAN.md`, and `docs/STATE.md` before starting work. Follow the machine's applicable GitHub identity instructions; keep credentials and private machine instructions outside this repository.
 
 - Git commits are the work ledger. Do not create a Projects board or additional tracking system.
 - Commit the brief and initial state and push them before substantive implementation.
@@ -11,4 +11,4 @@ Read `docs/BRIEF.md`, `docs/ARCHITECTURE.md`, `docs/NATIVE-PLAN.md`, and `docs/S
 - Keep networking local by default. Prefer a small, precise design over premature optimization.
 - Do not report validation that was not actually performed. Require a clean build and actual browser UI verification before marking the milestones complete.
 
-Implementation ownership and public interfaces are specified in `docs/CONTRACT.md`. Read the current validation and review records before changing behavior.
+Current binary-source ownership and interfaces are specified in `docs/BINARY-PLAN.md`; `docs/CONTRACT.md` retains historical APIs. Read the current validation and review records before changing behavior.

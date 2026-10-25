@@ -1,5 +1,7 @@
 # Native milestone validation
 
+**Binary-source update:** `BINARY-PLAN.md` and `BINARY-FORMAT.md` supersede JSON source and source API details here. Native backend/runtime evidence remains relevant; current end-to-end acceptance is recorded in `BINARY-VALIDATION.md`.
+
 Date: 2026-10-25. This record supersedes interpreter-only completion in `VALIDATION.md`. Native executables are a required deliverable for both demonstrations.
 
 ## Environment and path

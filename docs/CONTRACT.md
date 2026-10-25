@@ -1,5 +1,7 @@
 # Rivet v1 implementation contract
 
+**Binary-source update:** `BINARY-PLAN.md` and `BINARY-FORMAT.md` supersede JSON source and source API details here. Native backend/runtime evidence remains relevant; current end-to-end acceptance is recorded in `BINARY-VALIDATION.md`.
+
 **Native extension:** This document preserves the original representation/reference API contract. `NATIVE-PLAN.md` supersedes execution/artifact behavior and ownership: Build links a persistent native executable, Run launches it, `interpret` selects the reference runtime, and Build/Status add artifact/LLVM/assembly fields. Native server status adds PID, console Run adds exit code, and failures add stderr/exit code. `GET /api/artifacts/<id>` downloads executable bytes. Stop reaps the native process; SIGINT/SIGTERM shuts down managed children.
 
 Committed before delegation. Changes require coordination and an update here.

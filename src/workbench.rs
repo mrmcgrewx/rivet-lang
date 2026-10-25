@@ -160,6 +160,34 @@ impl Workbench {
                 return;
             }
 
+            if let Some(id) = path.strip_prefix("/api/examples/") {
+                let example: Option<(&[u8], &str)> = match id {
+                    "hello" => Some((include_bytes!("../examples/hello.rvb"), "hello.rvb")),
+                    "server" => Some((include_bytes!("../examples/server.rvb"), "server.rvb")),
+                    "computed" => {
+                        Some((include_bytes!("../examples/computed.rvb"), "computed.rvb"))
+                    }
+                    _ => None,
+                };
+                if let Some((bytes, filename)) = example {
+                    let _ = request.respond(
+                        Response::from_bytes(bytes.to_vec())
+                            .with_header(runtime::header(
+                                "Content-Type",
+                                "application/octet-stream",
+                            ))
+                            .with_header(runtime::header(
+                                "Content-Disposition",
+                                &format!("attachment; filename=\"{filename}\""),
+                            ))
+                            .with_header(runtime::header("Cache-Control", "no-store"))
+                            .with_header(runtime::header("X-Content-Type-Options", "nosniff")),
+                    );
+                } else {
+                    send_json(request, 404, error("Unknown binary example"));
+                }
+                return;
+            }
             match path.as_str() {
                 "/" => send(
                     request,
@@ -184,9 +212,9 @@ impl Workbench {
                     request,
                     200,
                     json!({"examples":[
-                        {"id":"hello","name":"Hello world","source":include_str!("../examples/hello.rivet.json")},
-                        {"id":"server","name":"HTTP server","source":include_str!("../examples/server.rivet.json")},
-                        {"id":"computed","name":"Computed values","source":include_str!("../examples/computed.rivet.json")}
+                        {"id":"hello","name":"Hello world","url":"/api/examples/hello","filename":"hello.rvb"},
+                        {"id":"server","name":"HTTP server","url":"/api/examples/server","filename":"server.rvb"},
+                        {"id":"computed","name":"Computed values","url":"/api/examples/computed","filename":"computed.rvb"}
                     ]}),
                 ),
                 _ => send_json(request, 404, error("Not found")),
@@ -197,6 +225,12 @@ impl Workbench {
             send_json(request, 405, error("Use GET or POST"));
             return;
         }
+        let binary_source = matches!(path.as_str(), "/api/build" | "/api/inspect");
+        let expected_type = if binary_source {
+            "application/octet-stream"
+        } else {
+            "application/json"
+        };
         let content_type = request_header("Content-Type").unwrap_or_default();
         if request_header("X-Rivet-Request").as_deref() != Some("1")
             || !content_type
@@ -204,54 +238,54 @@ impl Workbench {
                 .next()
                 .unwrap_or("")
                 .trim()
-                .eq_ignore_ascii_case("application/json")
+                .eq_ignore_ascii_case(expected_type)
         {
             send_json(
                 request,
                 403,
-                error("API mutations require JSON and X-Rivet-Request: 1"),
+                error(&format!(
+                    "This endpoint requires {expected_type} and X-Rivet-Request: 1"
+                )),
             );
             return;
         }
-        if request.body_length().is_some_and(|n| n as u64 > MAX_BODY) {
-            send_json(request, 413, error("API request exceeds 512 KiB"));
+        if path == "/api/build" {
+            self.build = None;
+        }
+        let limit = if binary_source { 65536 } else { MAX_BODY };
+        if request.body_length().is_some_and(|n| n as u64 > limit) {
+            send_json(
+                request,
+                413,
+                error(&format!("Request body exceeds {limit} bytes")),
+            );
             return;
         }
-        let mut body = String::new();
-        match request
-            .as_reader()
-            .take(MAX_BODY + 1)
-            .read_to_string(&mut body)
-        {
-            Ok(_) if body.len() as u64 <= MAX_BODY => (),
+        let mut body = Vec::new();
+        match request.as_reader().take(limit + 1).read_to_end(&mut body) {
+            Ok(_) if body.len() as u64 <= limit => (),
             _ => {
-                send_json(
-                    request,
-                    400,
-                    error("Cannot read bounded UTF-8 request body"),
-                );
+                send_json(request, 400, error("Cannot read bounded request body"));
                 return;
             }
         }
         let (status, response) = self.dispatch(&path, &body);
         send_json(request, status, response);
     }
-    fn dispatch(&mut self, path: &str, body: &str) -> (u16, Value) {
+    fn dispatch(&mut self, path: &str, body: &[u8]) -> (u16, Value) {
         self.check_child();
         match path {
+            "/api/inspect" => match language::inspect_binary(body) {
+                Ok(inspection) => (200, json!({"ok":true,"inspection":inspection})),
+                Err(diagnostics) => (
+                    400,
+                    json!({"ok":false,"error":"Invalid binary source","diagnostics":diagnostics}),
+                ),
+            },
             "/api/build" => {
-                #[derive(Deserialize)]
-                #[serde(deny_unknown_fields)]
-                struct Input {
-                    source: String,
-                }
-                let input: Input = match serde_json::from_str(body) {
-                    Ok(v) => v,
-                    Err(e) => return (400, error(&format!("Invalid build request: {e}"))),
-                };
                 // Failure invalidates the build, but an already-running server owns its own artifact.
                 self.build = None;
-                match language::compile(&input.source) {
+                match language::compile_binary(body) {
                     Ok(program) => {
                         let id = self.next_build;
                         self.next_build += 1;
@@ -297,7 +331,7 @@ impl Workbench {
                 struct Input {
                     build_id: u64,
                 }
-                let input: Input = match serde_json::from_str(body) {
+                let input: Input = match serde_json::from_slice(body) {
                     Ok(v) => v,
                     Err(e) => return (400, error(&format!("Invalid run request: {e}"))),
                 };
@@ -345,7 +379,7 @@ impl Workbench {
                 #[derive(Deserialize)]
                 #[serde(deny_unknown_fields)]
                 struct Input {}
-                if serde_json::from_str::<Input>(body).is_err() {
+                if serde_json::from_slice::<Input>(body).is_err() {
                     return (400, error("Stop expects an empty JSON object"));
                 }
                 let stopped = self.running.is_some();
@@ -362,7 +396,7 @@ impl Workbench {
                 struct Input {
                     path: String,
                 }
-                let input: Input = match serde_json::from_str(body) {
+                let input: Input = match serde_json::from_slice(body) {
                     Ok(v) => v,
                     Err(e) => return (400, error(&format!("Invalid request: {e}"))),
                 };

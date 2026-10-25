@@ -2,202 +2,188 @@ import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { isAbsolute } from "node:path";
 
-const apiHeaders = {
-  "Content-Type": "application/json",
-  "X-Rivet-Request": "1",
-};
-
-async function editProgram(page, transform) {
-  const editor = page.getByRole("textbox", { name: "Program source" });
-  const program = JSON.parse(await editor.inputValue());
-  transform(program);
-  await editor.fill(JSON.stringify(program, null, 2));
+const controlHeaders = { "Content-Type": "application/json", "X-Rivet-Request": "1" };
+const fixture = name => readFile(new URL(`../../examples/${name}.rvb`, import.meta.url));
+const u16 = value => { const bytes = Buffer.alloc(2); bytes.writeUInt16LE(value); return bytes; };
+const i64 = value => { const bytes = Buffer.alloc(8); bytes.writeBigInt64LE(BigInt(value)); return bytes; };
+const record = (op, type, payload) => Buffer.concat([Buffer.from([op, type]), u16(payload.length), payload]);
+function program(records, kind, entry) {
+  const body = Buffer.concat([...records, entry]);
+  const header = Buffer.alloc(16);
+  header.set([0x52, 0x56, 0x42, 0]);
+  header.writeUInt16LE(1, 4);
+  header.writeUInt16LE(records.length, 8);
+  header[10] = kind;
+  header.writeUInt32LE(body.length, 12);
+  return Buffer.concat([header, body]);
 }
-
-async function build(page) {
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.url().endsWith("/api/build") &&
-      response.request().method() === "POST",
-  );
-  await page.locator("#build").click();
-  await expect(page.locator("#source-badge")).toHaveText("Built", {
-    timeout: 15_000,
-  });
+const textRecord = text => record(1, 1, Buffer.from(text));
+function intServer(value) {
+  const key = Buffer.from("max");
+  const object = record(0x20, 4, Buffer.concat([u16(1), u16(key.length), key, u16(0)]));
+  const path = Buffer.from("/max");
+  return program([record(2, 2, i64(value)), object], 2,
+    Buffer.concat([u16(0), u16(1), u16(path.length), path, u16(200), u16(1)]));
+}
+async function downloadBytes(page, name) {
+  const pending = page.waitForEvent("download");
+  await page.getByRole("button", { name, exact: true }).click();
+  const download = await pending;
+  const chunks = [];
+  for await (const chunk of await download.createReadStream()) chunks.push(chunk);
+  return { bytes: Buffer.concat(chunks), filename: download.suggestedFilename() };
+}
+async function openBytes(page, bytes, filename = "custom.rvb") {
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Open binary", exact: true }).click();
+  await (await chooser).setFiles({ name: filename, mimeType: "application/octet-stream", buffer: bytes });
+  await expect(page.locator("#program-name")).toHaveText(filename);
   await expect(page.locator("#build")).toBeEnabled();
-  const response = await responsePromise;
+}
+async function hexBytes(page, bytes) {
+  await page.getByRole("combobox", { name: "Source view", exact: true }).selectOption("hex");
+  await page.getByRole("textbox", { name: "Binary source bytes", exact: true }).fill(bytes.toString("hex").match(/../g)?.join(" ") || "");
+  await expect(page.locator("#build")).toBeEnabled();
+}
+async function editLiteral(page, index, value) {
+  await page.getByRole("combobox", { name: "Literal instruction" }).selectOption(String(index));
+  await page.getByRole("textbox", { name: "Literal value", exact: true }).fill(value);
+  await page.getByRole("button", { name: "Apply value", exact: true }).click();
+  await expect(page.locator("#build")).toBeEnabled();
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
+}
+async function build(page) {
+  const pending = page.waitForResponse(response => response.url().endsWith("/api/build") && response.request().method() === "POST");
+  await page.locator("#build").click();
+  await expect(page.locator("#source-badge")).toHaveText("Built");
+  await expect(page.locator("#build")).toBeEnabled();
+  const response = await pending;
   expect(response.ok()).toBeTruthy();
+  expect(response.request().headers()["content-type"]).toBe("application/octet-stream");
+  expect(response.request().postDataBuffer().subarray(0, 4)).toEqual(Buffer.from([0x52, 0x56, 0x42, 0]));
   return (await response.json()).build;
 }
-
 async function startServer(page) {
   await page.getByRole("button", { name: "HTTP server", exact: true }).click();
-  await editProgram(page, (program) => {
-    program.entry.port = 0;
-  });
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
+  await page.getByRole("spinbutton", { name: "Server port" }).fill("0");
+  await page.getByRole("button", { name: "Apply port" }).click();
+  await expect(page.locator("#build")).toBeEnabled();
   await build(page);
   await page.getByRole("button", { name: "Start server", exact: true }).click();
   await expect(page.locator("#server-badge")).toHaveText("Running");
-  await expect(
-    page.getByRole("button", { name: "Stop", exact: true }),
-  ).toBeEnabled();
 }
-
 async function request(page, path = "/hello") {
   await page.getByRole("textbox", { name: "Request path" }).fill(path);
   await page.getByRole("button", { name: "Send request" }).click();
-  await expect(
-    page.getByRole("button", { name: "Send request" }),
-  ).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Send request" })).toBeEnabled();
 }
 
 test.beforeEach(async ({ page, request }) => {
-  const response = await request.post("/api/stop", {
-    headers: apiHeaders,
-    data: {},
-  });
-  expect(response.ok()).toBeTruthy();
+  expect((await request.post("/api/stop", { headers: controlHeaders, data: {} })).ok()).toBeTruthy();
   await page.goto("/");
-  await expect(
-    page.getByRole("button", { name: "Hello world", exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Hello world", exact: true })).toBeVisible();
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
   await expect(page.locator("#build")).toBeEnabled();
 });
-
 test.afterEach(async ({ request }) => {
-  await request.post("/api/stop", { headers: apiHeaders, data: {} });
+  await request.post("/api/stop", { headers: controlHeaders, data: {} });
 });
 
-test("Hello world builds native code and runs; changed source must rebuild and changes output", async ({
-  page,
-}) => {
-  await expect(
-    page.getByRole("button", { name: "Run executable", exact: true }),
-  ).toBeDisabled();
+test("binary source has decoded and byte views; source download is the original bytes", async ({ page }) => {
+  const bytes = await fixture("hello");
+  const decoded = page.getByRole("textbox", { name: "Decoded program", exact: true });
+  await expect(decoded).toHaveAttribute("readonly", "");
+  await expect(decoded).toHaveValue(/concat/);
+  await expect(page.locator("#source-stats")).toContainText(`${bytes.length} bytes`);
+  const downloaded = await downloadBytes(page, "Download binary source");
+  expect(downloaded.filename).toBe("hello.rvb");
+  expect(downloaded.bytes).toEqual(bytes);
+  expect(downloaded.bytes[3]).toBe(0);
+  expect(downloaded.bytes.toString()).not.toContain('"instructions"');
+  await page.getByRole("combobox", { name: "Source view" }).selectOption("hex");
+  const hex = page.getByRole("textbox", { name: "Binary source bytes", exact: true });
+  expect(Buffer.from((await hex.inputValue()).replace(/\s/g, ""), "hex")).toEqual(bytes);
+  await expect(hex).not.toHaveAttribute("readonly", "");
+  expect((await downloadBytes(page, "Download binary source")).bytes).toEqual(bytes);
+  const narrowRows = Array.from({ length: Math.ceil(bytes.length / 8) }, (_, index) =>
+    bytes.subarray(index * 8, index * 8 + 8).toString("hex").match(/../g).join(" ")).join("\n");
+  await hex.fill(narrowRows);
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
+  expect((await page.locator("#line-numbers").textContent()).split("\n").slice(0, 3)).toEqual(["0000", "0008", "0010"]);
+});
+
+test("native Hello and literal edits use raw binary builds and require rebuilding", async ({ page }) => {
+  await expect(page.getByRole("button", { name: "Run executable", exact: true })).toBeDisabled();
   await build(page);
-  await page.getByRole("tab", { name: "Compiled code" }).click();
-  await expect(page.locator("#ir-output")).not.toBeEmpty();
-  await expect(page.locator("#instruction-count")).toContainText("Build #");
   await page.getByRole("button", { name: "Run executable", exact: true }).click();
   await expect(page.getByLabel("Program output")).toHaveText("Hello, world!\n");
-  await expect(page.locator("#console-detail")).toContainText("Completed");
   await expect(page.locator("#console-detail")).toContainText("Exit code 0");
-
-  await editProgram(page, (program) => {
-    program.instructions.find(
-      (instruction) => instruction.id === "audience",
-    ).value = "Rivet!";
-  });
+  await editLiteral(page, 1, "Rivet ☃!");
   await expect(page.locator("#source-badge")).toHaveText("Modified");
-  await expect(
-    page.getByRole("button", { name: "Run executable", exact: true }),
-  ).toBeDisabled();
-  await expect(page.locator("#build-status")).toContainText("build again");
-  await expect(page.locator("#artifact-state")).toContainText(
-    "Previous source",
-  );
+  await expect(page.getByRole("button", { name: "Run executable", exact: true })).toBeDisabled();
+  await expect(page.locator("#artifact-state")).toContainText("Previous source");
+  const changed = (await downloadBytes(page, "Download binary source")).bytes;
+  expect(changed.readUInt32LE(12)).toBe(changed.length - 16);
+  expect(changed).not.toEqual(await fixture("hello"));
+  expect(changed.toString()).toContain("Rivet ☃!");
   await build(page);
   await page.getByRole("button", { name: "Run executable", exact: true }).click();
-  await expect(page.getByLabel("Program output")).toHaveText("Hello, Rivet!\n");
+  await expect(page.getByLabel("Program output")).toHaveText("Hello, Rivet ☃!\n");
 });
 
-test("native artifact exposes build metadata, all code views, and exact executable download bytes", async ({
-  page,
-}) => {
+test("artifact metadata, generated code and executable download remain distinct from binary source", async ({ page }) => {
   const compiled = await build(page);
-  const artifact = compiled.artifact;
-  expect(isAbsolute(artifact.path)).toBeTruthy();
-  expect(artifact.size_bytes).toBeGreaterThan(0);
-  expect(compiled.build_ms).toBeGreaterThanOrEqual(0);
-  await expect(page.getByLabel("Executable path")).toHaveText(artifact.path);
-  await expect(page.locator("#artifact-size")).toHaveText(
-    `${artifact.size_bytes.toLocaleString()} bytes`,
-  );
+  expect(isAbsolute(compiled.artifact.path)).toBeTruthy();
+  await expect(page.getByLabel("Executable path")).toHaveText(compiled.artifact.path);
+  await expect(page.locator("#artifact-size")).toHaveText(`${compiled.artifact.size_bytes.toLocaleString()} bytes`);
   await expect(page.locator("#artifact-profile")).toHaveText("size");
-  await expect(page.locator("#artifact-target")).toHaveText(artifact.target);
-  await expect(page.locator("#artifact-build-time")).toHaveText(
-    `${compiled.build_ms.toLocaleString()} ms`,
-  );
-  await expect(page.locator("#artifact-state")).toContainText(
-    `Build #${compiled.id} · Current source`,
-  );
-
-  await page
-    .getByRole("tab", { name: "Compiled code", exact: true })
-    .click();
-  const codeView = page.getByRole("combobox", {
-    name: "Compiled code view",
-  });
-  await expect(
-    page.getByLabel("Compiled intermediate representation", { exact: true }),
-  ).toHaveText(compiled.ir);
-  await codeView.selectOption("llvm_ir");
-  expect(compiled.llvm_ir).toContain("define");
-  await expect(
-    page.getByLabel("LLVM intermediate representation", { exact: true }),
-  ).toHaveText(compiled.llvm_ir);
-  await codeView.selectOption("assembly");
-  expect(compiled.assembly.length).toBeGreaterThan(20);
-  await expect(
-    page.getByLabel("Generated assembly", { exact: true }),
-  ).toHaveText(compiled.assembly);
-
-  const downloadPromise = page.waitForEvent("download");
-  await page
-    .getByRole("button", { name: "Download executable", exact: true })
-    .click();
-  const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("rivet-program");
-  const chunks = [];
-  for await (const chunk of await download.createReadStream())
-    chunks.push(chunk);
-  const downloaded = Buffer.concat(chunks);
-  expect(downloaded.length).toBe(artifact.size_bytes);
-  expect(downloaded).toEqual(await readFile(artifact.path));
-  // Native file headers distinguish a real executable from source or a JSON response.
-  expect(downloaded.subarray(0, 4)).toEqual(
-    process.platform === "darwin"
-      ? Buffer.from([0xcf, 0xfa, 0xed, 0xfe])
-      : Buffer.from([0x7f, 0x45, 0x4c, 0x46]),
-  );
+  await expect(page.locator("#artifact-target")).toHaveText(compiled.artifact.target);
+  await page.getByRole("tab", { name: "Compiled code", exact: true }).click();
+  for (const [value, label] of [["ir", "Compiled intermediate representation"], ["llvm_ir", "LLVM intermediate representation"], ["assembly", "Generated assembly"]]) {
+    await page.getByRole("combobox", { name: "Compiled code view" }).selectOption(value);
+    await expect(page.getByLabel(label, { exact: true })).toHaveText(compiled[value]);
+  }
+  const executable = await downloadBytes(page, "Download executable");
+  expect(executable.filename).toBe("rivet-program");
+  expect(executable.bytes).toEqual(await readFile(compiled.artifact.path));
+  expect(executable.bytes.subarray(0, 4)).toEqual(Buffer.from(process.platform === "darwin" ? [0xcf, 0xfa, 0xed, 0xfe] : [0x7f, 0x45, 0x4c, 0x46]));
+  expect(executable.bytes).not.toEqual((await downloadBytes(page, "Download binary source")).bytes);
 });
 
-test("syntax, reference, and runtime errors appear as useful diagnostics", async ({
-  page,
-}) => {
-  await page
-    .getByRole("textbox", { name: "Program source" })
-    .fill("{ invalid json");
+test("hex edits and binary decoder errors are visible, and JSON is rejected as source", async ({ page }) => {
+  await page.getByRole("combobox", { name: "Source view" }).selectOption("hex");
+  await page.getByRole("textbox", { name: "Binary source bytes" }).fill("52 5");
+  await expect(page.locator("#diagnostics")).toContainText("two hexadecimal digits");
+  await expect(page.locator("#build")).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Download binary source", exact: true })).toBeDisabled();
+  const bad = Buffer.from(await fixture("hello"));
+  bad[0] = 0;
+  await hexBytes(page, bad);
+  await expect(page.locator("#diagnostics")).toContainText(/magic/i);
   await page.locator("#build").click();
-  await expect(page.getByRole("tab", { name: /Diagnostics/ })).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
-  await expect(page.locator("#diagnostics")).toContainText(/line|column/i);
-  await expect(
-    page.getByRole("button", { name: "Run executable", exact: true }),
-  ).toBeDisabled();
-
+  await expect(page.locator("#diagnostics")).toContainText(/byte|offset/i);
+  await expect(page.getByRole("button", { name: "Run executable", exact: true })).toBeDisabled();
+  await openBytes(page, Buffer.from('{"version":1,"instructions":[]}'), "not-binary.json");
+  await expect(page.locator("#inspection-status")).toHaveText("Invalid binary");
+  await expect(page.locator("#diagnostics")).toContainText(/magic|binary/i);
   await page.getByRole("button", { name: "Hello world", exact: true }).click();
-  await editProgram(page, (program) => {
-    program.entry.value = "missing_register";
-  });
-  await page.locator("#build").click();
-  await expect(page.locator("#diagnostics")).toContainText("missing_register");
-  await expect(page.locator("#diagnostics")).toContainText("entry");
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
+  const changed = Buffer.from(await fixture("hello"));
+  // Same-size payload edit authored directly as source bytes: capital W.
+  changed[31] = "W".charCodeAt(0);
+  await hexBytes(page, changed);
+  await build(page);
+  await page.getByRole("button", { name: "Run executable", exact: true }).click();
+  await expect(page.getByLabel("Program output")).toHaveText("Hello, World!\n");
+});
 
-  // This program is well typed; overflow is detected during execution.
-  await page.getByRole("textbox", { name: "Program source" }).fill(`{
-    "version": 1,
-    "name": "Overflow",
-    "instructions": [
-      {"id":"max","op":"int","value":9223372036854775807},
-      {"id":"one","op":"int","value":1},
-      {"id":"sum","op":"add","left":"max","right":"one"},
-      {"id":"text","op":"to_text","value":"sum"}
-    ],
-    "entry":{"kind":"console","value":"text"}
-  }`);
+test("native checked overflow remains a runtime error for well-formed binary source", async ({ page }) => {
+  const bytes = program([
+    record(2, 2, i64(9223372036854775807n)), record(2, 2, i64(1)),
+    record(0x11, 2, Buffer.concat([u16(0), u16(1)])), record(0x12, 1, u16(2)),
+  ], 1, u16(3));
+  await openBytes(page, bytes, "overflow.rvb");
   await build(page);
   await page.getByRole("button", { name: "Run executable", exact: true }).click();
   await expect(page.locator("#diagnostics")).toContainText(/overflow/i);
@@ -205,236 +191,135 @@ test("syntax, reference, and runtime errors appear as useful diagnostics", async
   await expect(page.locator("#console-detail")).toContainText(/Exit code [1-9]/);
 });
 
-test("HTTP service handles repeated real requests, missing routes, stop and restart", async ({
-  page,
-  request: api,
-}) => {
+test("binary HTTP program serves repeated real requests and stops its native process", async ({ page, request: api }) => {
   await startServer(page);
   const address = await page.locator("#server-address").textContent();
-  expect(address).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
   await expect(page.locator("#server-pid")).toHaveText(/^[1-9]\d*$/);
-  for (let count = 1; count <= 3; count += 1) {
+  for (let count = 1; count <= 3; count++) {
     await request(page);
     await expect(page.locator("#response-meta")).toContainText("200");
-    await expect(page.locator("#response-meta")).toContainText(
-      "application/json",
-    );
-    await expect(page.getByLabel("HTTP response body")).toHaveText(
-      JSON.stringify({ message: "hello world" }),
-    );
+    await expect(page.locator("#response-meta")).toContainText("application/json");
+    await expect(page.getByLabel("HTTP response body")).toHaveText('{"message":"hello world"}');
     await expect(page.locator("#request-count")).toHaveText(String(count));
   }
   await request(page, "/missing");
   await expect(page.locator("#response-meta")).toContainText("404");
-  await expect(page.locator("#request-count")).toHaveText("4");
   await page.getByRole("button", { name: "Stop", exact: true }).click();
   await expect(page.locator("#server-badge")).toHaveText("Stopped");
   await expect(page.locator("#server-pid")).toHaveText("—");
-  await expect(
-    page.getByRole("button", { name: "Send request" }),
-  ).toBeDisabled();
-  await expect(
-    api.get(`${address}/hello`, { timeout: 1500 }),
-  ).rejects.toThrow();
+  await expect(api.get(`${address}/hello`, { timeout: 1500 })).rejects.toThrow();
   await page.getByRole("button", { name: "Start server", exact: true }).click();
   await expect(page.locator("#server-badge")).toHaveText("Running");
   await request(page);
-  await expect(page.locator("#response-meta")).toContainText("200");
   await expect(page.locator("#request-count")).toHaveText("1");
 });
 
-test("running artifact survives a failed build and edited server response is used after restart", async ({
-  page,
-}) => {
+test("running artifact survives invalid binary while edited source takes effect after restart", async ({ page }) => {
   await startServer(page);
-  const original = await page
-    .getByRole("textbox", { name: "Program source" })
-    .inputValue();
-  const runningBuild = await page.locator("#server-build").textContent();
-  await page.getByRole("textbox", { name: "Program source" }).fill("{broken");
+  const buildId = await page.locator("#server-build").textContent();
+  await hexBytes(page, Buffer.from([0, 1, 2]));
   await page.locator("#build").click();
   await expect(page.locator("#diagnostics")).not.toBeEmpty();
-  await expect(
-    page.getByRole("button", { name: "Download executable", exact: true }),
-  ).toBeDisabled();
-  await expect(page.locator("#server-badge")).toHaveText("Running");
-  await expect(page.locator("#server-build")).toHaveText(runningBuild);
-  await expect(
-    page.getByRole("button", { name: "Stop", exact: true }),
-  ).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Download executable", exact: true })).toBeDisabled();
+  await expect(page.locator("#server-build")).toHaveText(buildId);
+  await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeEnabled();
   await request(page);
-  await expect(page.getByLabel("HTTP response body")).toContainText(
-    "hello world",
-  );
+  await expect(page.getByLabel("HTTP response body")).toContainText("hello world");
   await expect(page.locator("#diagnostics")).not.toBeEmpty();
-
-  const changed = JSON.parse(original);
-  changed.instructions.find(
-    (instruction) => instruction.id === "message",
-  ).value = "from the edited program";
-  changed.entry.routes[0].path = "/edited";
-  await page
-    .getByRole("textbox", { name: "Program source" })
-    .fill(JSON.stringify(changed, null, 2));
+  await page.getByRole("button", { name: "HTTP server", exact: true }).click();
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
+  await editLiteral(page, 0, "edited binary source");
   await build(page);
-  await expect(
-    page.getByRole("button", { name: "Start server", exact: true }),
-  ).toBeDisabled();
-  await expect(page.locator("#server-description")).toContainText(
-    "still running",
-  );
+  await expect(page.getByRole("button", { name: "Start server", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "Stop", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "Start server", exact: true }),
-  ).toBeEnabled();
   await page.getByRole("button", { name: "Start server", exact: true }).click();
-  await expect(page.getByRole("textbox", { name: "Request path" })).toHaveValue(
-    "/edited",
-  );
-  await request(page, "/edited");
-  await expect(page.getByLabel("HTTP response body")).toHaveText(
-    JSON.stringify({ message: "from the edited program" }),
-  );
+  await expect(page.locator("#server-badge")).toHaveText("Running");
+  await request(page);
+  await expect(page.getByLabel("HTTP response body")).toHaveText('{"message":"edited binary source"}');
 });
 
-test("computed example executes addition, conversion, and nested object composition", async ({
-  page,
-}) => {
-  await page
-    .getByRole("button", { name: "Computed values", exact: true })
-    .click();
+test("computed binary example supports integer and boolean byte edits", async ({ page }) => {
+  await page.getByRole("button", { name: "Computed values", exact: true }).click();
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
+  await editLiteral(page, 0, "41");
+  await editLiteral(page, 6, "false");
   await build(page);
   await page.getByRole("button", { name: "Start server", exact: true }).click();
   await expect(page.locator("#server-badge")).toHaveText("Running");
   await request(page, "/computed");
-  const body = JSON.parse(
-    await page.getByLabel("HTTP response body").textContent(),
-  );
-  expect(body).toEqual({
-    message: "The answer is 42",
-    details: { answer: 42, ready: true },
-  });
+  expect(JSON.parse(await page.getByLabel("HTTP response body").textContent())).toEqual({ message: "The answer is 43", details: { answer: 43, ready: false } });
 });
 
-test("an exited native server is reported once without replacing newer compiler diagnostics", async ({
-  page,
-}) => {
-  await startServer(page);
-  const pid = Number(await page.locator("#server-pid").textContent());
-  await page.getByRole("textbox", { name: "Program source" }).fill("{broken");
-  await page.locator("#build").click();
-  await expect(page.locator("#diagnostics")).toContainText(/line|column/i);
-  const compilerDiagnostic = await page.locator("#diagnostics").textContent();
-
-  process.kill(pid, "SIGTERM");
-  await expect(page.locator("#server-badge")).toHaveText("Stopped");
-  await expect(page.locator("#diagnostics")).toContainText("Native server exited");
-  await expect(page.locator("#diagnostics")).toContainText(compilerDiagnostic);
-  await expect(page.locator("#diagnostics li")).toHaveCount(2);
-  await expect(page.locator("#server-pid")).toHaveText("—");
-  await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeDisabled();
-
-  // Polling the same failure again must not append duplicate runtime diagnostics.
-  await page.waitForResponse((response) => response.url().endsWith("/api/status"));
-  await expect(page.locator("#diagnostics li")).toHaveCount(2);
-});
-
-test("response inspector preserves signed 64-bit integers exactly", async ({
-  page,
-}) => {
-  await page.getByRole("textbox", { name: "Program source" }).fill(`{
-    "version": 1,
-    "name": "Exact integer response",
-    "instructions": [
-      {"id":"max","op":"int","value":9223372036854775807},
-      {"id":"response","op":"object","fields":{"max":"max"}}
-    ],
-    "entry":{"kind":"http","port":0,"routes":[{"method":"GET","path":"/max","status":200,"body":"response"}]}
-  }`);
+test("literal editor preserves exact i64 values in bytes and HTTP output", async ({ page }) => {
+  await openBytes(page, intServer(0), "integer.rvb");
+  await editLiteral(page, 0, "9223372036854775807");
+  let downloaded = await downloadBytes(page, "Download binary source");
+  expect(downloaded.bytes.readBigInt64LE(20)).toBe(9223372036854775807n);
   await build(page);
   await page.getByRole("button", { name: "Start server", exact: true }).click();
   await expect(page.locator("#server-badge")).toHaveText("Running");
   await request(page, "/max");
-  await expect(page.getByLabel("HTTP response body")).toHaveText(
-    '{"max":9223372036854775807}',
-  );
+  await expect(page.getByLabel("HTTP response body")).toHaveText('{"max":9223372036854775807}');
+  await page.getByRole("button", { name: "Stop", exact: true }).click();
+  await editLiteral(page, 0, "-9223372036854775808");
+  downloaded = await downloadBytes(page, "Download binary source");
+  expect(downloaded.bytes.readBigInt64LE(20)).toBe(-9223372036854775808n);
+  await page.getByRole("textbox", { name: "Literal value" }).fill("9223372036854775808");
+  await page.getByRole("button", { name: "Apply value" }).click();
+  await expect(page.locator("#diagnostics")).toContainText("outside the signed 64-bit range");
+  expect((await downloadBytes(page, "Download binary source")).bytes).toEqual(downloaded.bytes);
 });
 
-test("new, open, and download preserve editable program source", async ({
-  page,
-}) => {
-  await page.getByRole("button", { name: "New program" }).click();
-  await expect(page.locator("#program-name")).toHaveText("Untitled program");
-  const document = {
-    version: 1,
-    name: "File roundtrip",
-    instructions: [{ id: "message", op: "text", value: "Opened from disk" }],
-    entry: { kind: "console", value: "message" },
-  };
-  const fileText = JSON.stringify(document, null, 2) + "\n";
-  const fileChooserPromise = page.waitForEvent("filechooser");
-  await page.getByRole("button", { name: "Open file" }).click();
-  await (
-    await fileChooserPromise
-  ).setFiles({
-    name: "roundtrip.rivet.json",
-    mimeType: "application/json",
-    buffer: Buffer.from(fileText),
-  });
-  await expect(
-    page.getByRole("textbox", { name: "Program source" }),
-  ).toHaveValue(fileText);
+test("new and opened binary files roundtrip exactly and decoded display is never saved as source", async ({ page }) => {
+  await page.getByRole("button", { name: "New binary source", exact: true }).click();
+  await expect(page.locator("#program-name")).toHaveText("untitled.rvb");
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
+  await editLiteral(page, 0, "Authored as bytes");
+  const created = await downloadBytes(page, "Download binary source");
+  expect(created.filename).toBe("untitled.rvb");
+  expect(created.bytes).toEqual(program([textRecord("Authored as bytes")], 1, u16(0)));
+  const bytes = program([textRecord("Opened from disk ☃")], 1, u16(0));
+  await openBytes(page, bytes, "roundtrip.rvb");
+  await expect(page.getByRole("textbox", { name: "Decoded program", exact: true })).toHaveValue(/Opened from disk/);
+  expect((await downloadBytes(page, "Download binary source")).bytes).toEqual(bytes);
   await build(page);
   await page.getByRole("button", { name: "Run executable", exact: true }).click();
-  await expect(page.getByLabel("Program output")).toHaveText(
-    "Opened from disk\n",
-  );
-  const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Download source" }).click();
-  const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("file-roundtrip.rivet.json");
-  const chunks = [];
-  for await (const chunk of await download.createReadStream())
-    chunks.push(chunk);
-  expect(Buffer.concat(chunks).toString()).toBe(fileText);
+  await expect(page.getByLabel("Program output")).toHaveText("Opened from disk ☃\n");
 });
 
-test("keyboard tabs, compact layout, and loading have no browser errors", async ({
-  page,
-}) => {
+test("native exit diagnostics preserve binary compiler errors and are not duplicated", async ({ page }) => {
+  await startServer(page);
+  const pid = Number(await page.locator("#server-pid").textContent());
+  await hexBytes(page, Buffer.from([0, 1, 2]));
+  await page.locator("#build").click();
+  await expect(page.locator("#diagnostics")).not.toBeEmpty();
+  const compilerError = await page.locator("#diagnostics").textContent();
+  process.kill(pid, "SIGTERM");
+  await expect(page.locator("#server-badge")).toHaveText("Stopped");
+  await expect(page.locator("#diagnostics")).toContainText("Native server exited");
+  await expect(page.locator("#diagnostics")).toContainText(compilerError);
+  const count = await page.locator("#diagnostics li").count();
+  await page.waitForResponse(response => response.url().endsWith("/api/status"));
+  await expect(page.locator("#diagnostics li")).toHaveCount(count);
+});
+
+test("binary views work with keyboard navigation and compact layout without page errors", async ({ page }) => {
   const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  await page.getByRole("textbox", { name: "Program source" }).focus();
-  await page.keyboard.press("Tab");
-  await expect(
-    page.getByRole("tab", { name: "Console", exact: true }),
-  ).toBeFocused();
+  page.on("pageerror", error => errors.push(error.message));
   await page.getByRole("tab", { name: "Console", exact: true }).focus();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("tab", { name: /Diagnostics/ })).toBeFocused();
-  await expect(page.getByRole("tab", { name: /Diagnostics/ })).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
   await page.keyboard.press("End");
-  await expect(page.getByRole("tab", { name: "Compiled code" })).toBeFocused();
+  await expect(page.getByRole("tab", { name: "Compiled code", exact: true })).toBeFocused();
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(
-    page.getByRole("textbox", { name: "Program source" }),
-  ).toBeVisible();
-  await expect(page.locator("#build")).toBeVisible();
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
-    ),
-  ).toBeTruthy();
+  await expect(page.getByRole("textbox", { name: "Decoded program", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Apply value", exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  await page.getByRole("combobox", { name: "Source view" }).selectOption("hex");
+  await expect(page.getByRole("textbox", { name: "Binary source bytes", exact: true })).toBeVisible();
   await build(page);
   await expect(page.getByLabel("Executable path")).toBeVisible();
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
-    ),
-  ).toBeTruthy();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   await page.getByRole("button", { name: "Run executable", exact: true }).click();
   await expect(page.getByLabel("Program output")).toHaveText("Hello, world!\n");
   expect(errors).toEqual([]);

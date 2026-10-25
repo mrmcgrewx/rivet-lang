@@ -1502,3 +1502,129 @@ kbd {
     transition: none !important;
   }
 }
+
+/* The source is bytes; these controls are views and byte-preserving edits. */
+.source-view-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  background: #f8f9f2;
+}
+.source-view-toolbar select,
+.binary-editors select,
+.binary-editors input,
+.binary-editors textarea {
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid #cbd6c3;
+  border-radius: 4px;
+  background: #fffefa;
+  color: #365333;
+  padding: 7px 9px;
+  font-size: 12px;
+}
+#inspection-status {
+  font: 10px var(--mono);
+  color: #687b5c;
+}
+.source-view-toolbar #inspection-status {
+  margin-left: auto;
+}
+.editor-wrap {
+  height: 260px;
+}
+.line-numbers {
+  width: 53px;
+  font-size: 10px;
+}
+.editor-footer {
+  gap: 10px;
+  flex-wrap: wrap;
+  line-height: 1.6;
+}
+.binary-editors {
+  padding: 15px 18px;
+  border-top: 1px solid var(--line);
+  background: #f8f9f2;
+}
+#literal-editor > label {
+  display: block;
+  margin-bottom: 6px;
+}
+#literal-select {
+  width: 100%;
+  margin-bottom: 12px;
+}
+#literal-label {
+  font-size: 11px;
+  color: #5d7350;
+}
+#literal-value {
+  width: 100%;
+  resize: vertical;
+  font-family: var(--mono);
+  min-height: 52px;
+  max-height: 220px;
+}
+#literal-value:focus-visible {
+  outline: 2px solid #7b9a4d;
+  outline-offset: 1px;
+}
+.binary-edit-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+}
+#literal-location {
+  font: 10px/1.5 var(--mono);
+  color: #657959;
+  overflow-wrap: anywhere;
+}
+.binary-edit-help {
+  font-size: 10px;
+  color: #687b5c;
+  line-height: 1.6;
+  margin: 11px 0 0;
+}
+.port-editor {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.port-editor label {
+  font-size: 11px;
+}
+#source-port {
+  width: 95px;
+}
+.results-panel .result-content {
+  flex: 1;
+  min-height: 379px;
+  max-height: 650px;
+}
+.sidebar-action {
+  white-space: normal;
+  line-height: 1.5;
+}
+@media (max-width: 680px) {
+  .source-view-toolbar #inspection-status {
+    margin-left: 0;
+    width: 100%;
+  }
+  .binary-editors {
+    padding: 13px;
+  }
+  .binary-edit-actions {
+    flex-wrap: wrap;
+  }
+  .source-view-toolbar {
+    padding: 12px 13px;
+  }
+}

@@ -1,6 +1,6 @@
 # Project brief
 
-**Binary-source correction in progress:** The canonical authored program must be an actual `.rvb` binary file. JSON-source completion is superseded. See `BINARY-PLAN.md` for the current encoding, interfaces, ownership, and acceptance. Native backend/runtime remain foundations.
+**Canonical source requirement:** The canonical authored program must be an actual `.rvb` binary file. JSON-source completion is superseded. See `BINARY-PLAN.md` for the current encoding, interfaces, ownership, and acceptance. Native backend/runtime remain foundations.
 
 ## Objective
 
@@ -10,11 +10,12 @@ The implementation language and execution target are engineering choices. Python
 
 ## Required native-artifact correction
 
-Native compilation is part of completion. Both demonstrations must build standalone native executables for Apple Silicon; workbench Run launches those artifacts, and they remain usable after closing the workbench. Established backends/linkers and small native runtime helpers are permitted. Document representation rationale, generated-code/runtime boundary, and a concrete efficiency objective measured against a semantics-equivalent baseline. Preserve the validator/interpreter as a correctness reference. The detailed current contract is `NATIVE-PLAN.md`.
+Native compilation is part of completion. Both demonstrations must build standalone native executables for Apple Silicon; workbench Run launches those artifacts, and they remain usable after closing the workbench. Established backends/linkers and small native runtime helpers are permitted. Document representation rationale, generated-code/runtime boundary, and a concrete efficiency objective measured against a semantics-equivalent baseline. Preserve the validator/interpreter as a correctness reference. The native backend contract is `NATIVE-PLAN.md`; binary source is specified in `BINARY-PLAN.md` and `BINARY-FORMAT.md`.
 
 ## Language and runtime
 
-- Use a genuine custom textual, structured, graph, or binary representation.
+- Author actual `.rvb` binary source files containing numeric opcodes, types, register references and payloads. JSON, textual assembly, and renamed/embedded text are not the canonical source.
+- Provide a GUI decoder and byte-preserving editor for human inspection; the compiler consumes binary source directly.
 - Define small, precise, extensible semantics sufficient to test program behavior and compiler correctness.
 - Use Rust, C++, or another suitable implementation language; justify backend/library choices.
 - Both demonstrations must execute custom-language programs. Ordinary runtime output, networking, and OS support are permitted.

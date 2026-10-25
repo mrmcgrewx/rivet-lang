@@ -49,12 +49,26 @@ impl App {
         }
     }
     fn raw(&self, method: &str, path: &str, body: Value) -> (u16, Vec<u8>) {
+        self.raw_bytes(
+            method,
+            path,
+            body.to_string().as_bytes(),
+            "application/json",
+        )
+    }
+    fn raw_bytes(
+        &self,
+        method: &str,
+        path: &str,
+        body: &[u8],
+        content_type: &str,
+    ) -> (u16, Vec<u8>) {
         let mut client = TcpStream::connect(self.address).unwrap();
         client
             .set_read_timeout(Some(Duration::from_secs(15)))
             .unwrap();
-        let body = body.to_string();
-        write!(client,"{method} {path} HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\nX-Rivet-Request: 1\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",self.address,body.len()).unwrap();
+        write!(client,"{method} {path} HTTP/1.1\r\nHost: {}\r\nContent-Type: {content_type}\r\nX-Rivet-Request: 1\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",self.address,body.len()).unwrap();
+        client.write_all(body).unwrap();
         let mut bytes = Vec::new();
         client.read_to_end(&mut bytes).unwrap();
         let end = bytes.windows(4).position(|w| w == b"\r\n\r\n").unwrap();
@@ -68,8 +82,12 @@ impl App {
         assert_eq!(status, 200, "{result}");
         result
     }
-    fn build(&self, source: &str) -> Value {
-        self.call("/api/build", json!({"source":source}))["build"].clone()
+    fn build(&self, source: &[u8]) -> Value {
+        let (status, bytes) =
+            self.raw_bytes("POST", "/api/build", source, "application/octet-stream");
+        let result: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(status, 200, "{result}");
+        result["build"].clone()
     }
 }
 impl Drop for App {
@@ -89,7 +107,7 @@ fn assert_native(bytes: &[u8]) {
 #[test]
 fn ui_artifact_download_and_console_survive_workbench_shutdown() {
     let app = App::new();
-    let build = app.build(include_str!("../examples/hello.rivet.json"));
+    let build = app.build(include_bytes!("../examples/hello.rvb"));
     let path = PathBuf::from(build["artifact"]["path"].as_str().unwrap());
     let bytes = fs::read(&path).unwrap();
     assert_native(&bytes);
@@ -128,10 +146,10 @@ fn ui_artifact_download_and_console_survive_workbench_shutdown() {
 #[test]
 fn server_artifact_runs_alone_after_workbench_and_managed_child_stop() {
     let app = App::new();
-    let mut source: Value =
-        serde_json::from_str(include_str!("../examples/server.rivet.json")).unwrap();
-    source["entry"]["port"] = json!(0);
-    let build = app.build(&source.to_string());
+    let mut source = include_bytes!("../examples/server.rvb").to_vec();
+    let offset = language::inspect_binary(&source).unwrap().entry_offset;
+    source[offset..offset + 2].copy_from_slice(&0u16.to_le_bytes());
+    let build = app.build(&source);
     let path = PathBuf::from(build["artifact"]["path"].as_str().unwrap());
     let running = app.call("/api/run", json!({"build_id":build["id"]}));
     assert!(running["server"]["pid"].as_u64().unwrap() > 0);
@@ -185,7 +203,8 @@ fn both_profiles_match_reference_http_json_and_native_failure() {
  {"id":"maxtext","op":"to_text","value":"max"},{"id":"nested","op":"object","fields":{"z":"max","a":"min"}},
  {"id":"body","op":"object","fields":{"z":"nested","a\0key":"text","bool":"b","quoted":"maxtext"}}],
  "entry":{"kind":"http","port":0,"routes":[{"method":"GET","path":"/values","status":201,"body":"body"}]}}).to_string();
-    let program = language::compile(&source).unwrap();
+    let bytes = language::compile(&source).unwrap().encode_binary();
+    let program = language::compile_binary(&bytes).unwrap();
     let Execution::Http { routes, .. } = program.execute().unwrap() else {
         panic!()
     };
@@ -208,8 +227,23 @@ fn cli_build_is_native_and_backend_failure_is_reported_without_artifact() {
     let temp = Temp::new();
     let hello = temp.0.join("hello");
     let cli = env!("CARGO_BIN_EXE_rivet");
+    let inspect = Command::new(cli)
+        .args(["inspect", "examples/hello.rvb"])
+        .output()
+        .unwrap();
+    assert!(inspect.status.success());
+    assert!(String::from_utf8_lossy(&inspect.stdout).contains("concat"));
+    let rejected = temp.0.join("json-is-not-source");
+    let json_input = Command::new(cli)
+        .args(["build", "tests/fixtures/legacy/hello.rivet.json", "-o"])
+        .arg(&rejected)
+        .output()
+        .unwrap();
+    assert!(!json_input.status.success());
+    assert!(!rejected.exists());
+    assert!(String::from_utf8_lossy(&json_input.stderr).contains("magic"));
     let output = Command::new(cli)
-        .args(["build", "examples/hello.rivet.json", "-o"])
+        .args(["build", "examples/hello.rvb", "-o"])
         .arg(&hello)
         .output()
         .unwrap();
@@ -222,7 +256,7 @@ fn cli_build_is_native_and_backend_failure_is_reported_without_artifact() {
     let failed = temp.0.join("bad");
     let output = Command::new(cli)
         .env("RIVET_CLANG", "/nonexistent/rivet-clang")
-        .args(["build", "examples/hello.rivet.json", "-o"])
+        .args(["build", "examples/hello.rvb", "-o"])
         .arg(&failed)
         .output()
         .unwrap();
@@ -230,7 +264,7 @@ fn cli_build_is_native_and_backend_failure_is_reported_without_artifact() {
     assert!(!failed.exists());
     assert!(String::from_utf8_lossy(&output.stderr).contains("Cannot launch native backend"));
     let overwrite = Command::new(cli)
-        .args(["build", "examples/hello.rivet.json", "-o"])
+        .args(["build", "examples/hello.rvb", "-o"])
         .arg(&hello)
         .output()
         .unwrap();
@@ -280,10 +314,10 @@ fn sigterm_stops_workbench_and_releases_native_server_port() {
         stop: Arc::new(AtomicBool::new(false)),
         worker: None,
     };
-    let mut source: Value =
-        serde_json::from_str(include_str!("../examples/server.rivet.json")).unwrap();
-    source["entry"]["port"] = json!(0);
-    let build = app.build(&source.to_string());
+    let mut source = include_bytes!("../examples/server.rvb").to_vec();
+    let offset = language::inspect_binary(&source).unwrap().entry_offset;
+    source[offset..offset + 2].copy_from_slice(&0u16.to_le_bytes());
+    let build = app.build(&source);
     let running = app.call("/api/run", json!({"build_id":build["id"]}));
     let server: SocketAddr = running["server"]["address"]
         .as_str()

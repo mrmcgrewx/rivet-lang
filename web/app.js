@@ -8,7 +8,15 @@
     examples: [],
     selectedExample: null,
     build: null,
-    builtSource: null,
+    builtBytes: null,
+    bytes: null,
+    filename: "untitled.rvb",
+    hexText: "",
+    inspection: null,
+    inspectionPending: false,
+    revision: 0,
+    literalSelection: "0",
+    inspectTimer: null,
     server: null,
     busy: null,
     connected: false,
@@ -28,10 +36,10 @@
         : {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
+              "Content-Type": body instanceof Uint8Array ? "application/octet-stream" : "application/json",
               "X-Rivet-Request": "1",
             },
-            body: JSON.stringify(body),
+            body: body instanceof Uint8Array ? body : JSON.stringify(body),
           };
     const response = await fetch(`/api/${path}`, {
       ...options,
@@ -80,51 +88,165 @@
   }
 
   function programInfo() {
-    try {
-      const value = JSON.parse(source.value);
-      return {
-        name:
-          typeof value?.name === "string" && value.name.trim()
-            ? value.name
-            : "Untitled program",
-        kind: value?.entry?.kind,
-      };
-    } catch {
-      return { name: "Untitled program", kind: null };
-    }
+    return { name: state.filename, kind: state.inspection?.entry?.kind };
+  }
+
+  function equalBytes(left, right) {
+    return left && right && left.length === right.length &&
+      left.every((value, index) => value === right[index]);
   }
 
   function isCurrentBuild() {
-    return Boolean(state.build && state.builtSource === source.value);
+    return Boolean(state.build && equalBytes(state.builtBytes, state.bytes));
+  }
+
+  function formatHex(bytes) {
+    return Array.from({ length: Math.ceil(bytes.length / 16) }, (_, line) =>
+      Array.from(bytes.subarray(line * 16, line * 16 + 16),
+        value => value.toString(16).padStart(2, "0")).join(" ")).join("\n");
+  }
+
+  function parseHex(text) {
+    const compact = text.replace(/\s/g, "");
+    if (!/^[0-9a-f]*$/i.test(compact))
+      throw localError("Use hexadecimal byte pairs (00–ff), separated by spaces or newlines.");
+    if (compact.length % 2) throw localError("A byte needs two hexadecimal digits. Complete the final pair.");
+    if (compact.length > 65536 * 2) throw localError("Binary source exceeds the 64 KiB limit.");
+    return Uint8Array.from(compact.match(/../g) || [], pair => parseInt(pair, 16));
+  }
+
+  function localError(message) {
+    const error = new Error(message);
+    error.local = true;
+    return error;
+  }
+
+  function renderSource() {
+    const hex = $("source-view").value === "hex";
+    source.value = hex ? state.hexText : state.inspection?.ir ||
+      (state.inspectionPending ? "Decoding binary source…" : "No decoded view. Inspect Diagnostics or repair the Hex bytes.");
+    source.setAttribute("aria-label", hex ? "Binary source bytes" : "Decoded program");
+    $("source-help").textContent = hex
+      ? "Hex editor · Each pair represents one source byte"
+      : "Decoded from RVB1 bytes · Read-only view";
+    renderEditor();
   }
 
   function renderEditor() {
-    const lines = source.value.split("\n").length;
-    $("line-numbers").textContent = Array.from(
-      { length: lines },
-      (_, index) => index + 1,
-    ).join("\n");
+    const hex = $("source-view").value === "hex";
+    let precedingDigits = 0;
+    $("line-numbers").textContent = source.value.split("\n").map((line, index) => {
+      const label = hex ? Math.floor(precedingDigits / 2).toString(16).padStart(4, "0") : index + 1;
+      precedingDigits += line.replace(/\s/g, "").length;
+      return label;
+    }).join("\n");
     $("line-numbers").scrollTop = source.scrollTop;
-    const bytes = encoder.encode(source.value).length;
-    const size =
-      bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`;
-    $("source-stats").textContent =
-      `${lines} ${lines === 1 ? "line" : "lines"} · ${size}`;
-    $("program-name").textContent = programInfo().name;
-    for (const button of $("examples").querySelectorAll("button")) {
-      button.setAttribute(
-        "aria-current",
-        String(button.dataset.id === state.selectedExample),
-      );
-    }
+    $("source-stats").textContent = state.bytes
+      ? `${state.bytes.length.toLocaleString()} bytes · RVB1`
+      : "Incomplete hex bytes";
+    $("program-name").textContent = state.filename;
+    for (const button of $("examples").querySelectorAll("button"))
+      button.setAttribute("aria-current", String(button.dataset.id === state.selectedExample));
     renderControls();
+  }
+
+  function renderLiteralSelection() {
+    const instruction = state.inspection?.instructions.find(item => String(item.index) === $("literal-select").value);
+    $("literal-value").value = instruction?.literal ?? "";
+    $("literal-label").textContent = instruction ? `${instruction.type_name} literal` : "Literal value";
+    $("literal-location").textContent = instruction
+      ? `r${instruction.index} · payload 0x${instruction.payload_offset.toString(16).padStart(4, "0")} · ${instruction.payload_length} bytes`
+      : "";
+  }
+
+  function renderValueEditors() {
+    const inspection = state.inspection;
+    $("binary-editors").hidden = !inspection;
+    const selected = state.literalSelection;
+    $("literal-select").replaceChildren();
+    const literals = inspection?.instructions.filter(item => item.literal !== null) || [];
+    for (const instruction of literals) {
+      const option = document.createElement("option");
+      option.value = String(instruction.index);
+      option.textContent = `r${instruction.index} · ${instruction.type_name} · 0x${instruction.offset.toString(16).padStart(4, "0")}`;
+      $("literal-select").append(option);
+    }
+    if (literals.some(item => String(item.index) === selected)) $("literal-select").value = selected;
+    $("literal-editor").hidden = !literals.length;
+    renderLiteralSelection();
+    $("port-editor").hidden = inspection?.entry.kind !== "http";
+    if (inspection?.entry.kind === "http")
+      $("source-port").value = new DataView(state.bytes.buffer, state.bytes.byteOffset, state.bytes.byteLength).getUint16(inspection.entry_offset, true);
+  }
+
+  async function inspectSource(bytes, revision) {
+    try {
+      const result = await api("inspect", bytes);
+      if (revision !== state.revision) return;
+      state.inspection = result.inspection;
+      if (state.diagnosticAction === "source") setDiagnostics([]);
+    } catch (error) {
+      if (revision !== state.revision) return;
+      state.inspection = null;
+      if (!error.status) setConnected(false);
+      setDiagnostics(error.diagnostics?.length ? error.diagnostics :
+        [{ path: "binary source", message: error.message }], "source");
+      selectTab("diagnostics");
+    } finally {
+      if (revision === state.revision) {
+        state.inspectionPending = false;
+        renderValueEditors();
+        if ($("source-view").value === "decoded") renderSource();
+        else renderEditor();
+        renderServer();
+      }
+    }
+  }
+
+  async function setSourceBytes(bytes, filename = state.filename, selectedExample = null) {
+    clearTimeout(state.inspectTimer);
+    state.bytes = bytes.slice();
+    state.filename = filename;
+    state.hexText = formatHex(bytes);
+    state.selectedExample = selectedExample;
+    state.inspection = null;
+    state.inspectionPending = true;
+    const revision = ++state.revision;
+    state.epoch += 1;
+    showNotice("");
+    setDiagnostics([]);
+    source.scrollTop = 0;
+    source.scrollLeft = 0;
+    renderValueEditors();
+    renderSource();
+    renderServer();
+    await inspectSource(state.bytes, revision);
+  }
+
+  async function loadExample(example) {
+    await perform("open", async () => {
+      const response = await fetch(example.url, { cache: "no-store" });
+      if (!response.ok) throw new Error(`Cannot load binary example (${response.status}).`);
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      await setSourceBytes(bytes, example.filename, example.id);
+    });
   }
 
   function renderControls() {
     const current = isCurrentBuild();
     const busy = Boolean(state.busy);
     const kind = programInfo().kind;
-    $("build").disabled = busy || !state.loaded;
+    $("build").disabled = busy || !state.loaded || !state.bytes || state.inspectionPending;
+    source.readOnly = busy || $("source-view").value !== "hex";
+    $("download-program").disabled = busy || !state.bytes;
+    $("new-program").disabled = busy;
+    $("open-program").disabled = busy;
+    for (const button of $("examples").querySelectorAll("button")) button.disabled = busy;
+    for (const id of ["literal-select", "literal-value", "apply-literal", "source-port", "apply-port"])
+      $(id).disabled = busy || state.inspectionPending || !state.inspection;
+    $("inspection-status").textContent = state.inspectionPending ? "Decoding…" : state.inspection
+      ? `${state.inspection.instructions.length} instructions · Valid binary`
+      : state.bytes ? "Invalid binary" : "Incomplete bytes";
     $("run").disabled = busy || !current || Boolean(state.server);
     $("stop").disabled = busy || !state.server;
     $("send-request").disabled = busy || !state.server;
@@ -152,6 +274,8 @@
         run: "Launching the native executable…",
         stop: "Stopping the native process and releasing its listener…",
         request: "Sending a local HTTP request…",
+        open: "Opening binary source…",
+        edit: "Updating and decoding binary source…",
       }[state.busy];
     } else if (state.diagnostics.length) {
       status = `${state.diagnostics.length} ${state.diagnostics.length === 1 ? "diagnostic" : "diagnostics"} · inspect the Diagnostics tab`;
@@ -265,17 +389,6 @@
     }
   }
 
-  function setSource(value, selectedExample = null) {
-    source.value = value;
-    source.scrollTop = 0;
-    source.scrollLeft = 0;
-    state.selectedExample = selectedExample;
-    showNotice("");
-    setDiagnostics([]);
-    renderEditor();
-    renderServer();
-  }
-
   async function perform(action, work) {
     if (state.busy) return;
     state.busy = action;
@@ -285,7 +398,7 @@
     try {
       await work();
     } catch (error) {
-      if (!error.status) setConnected(false);
+      if (!error.status && !error.local) setConnected(false);
       const diagnostics = error.diagnostics?.length
         ? error.diagnostics
         : [{ path: action, message: error.message }];
@@ -324,7 +437,7 @@
         $("console-detail").textContent =
           `Build #${state.server.build_id} · Native process ${state.server.pid} exited. Listener is no longer running.`;
       }
-      if (state.build?.id !== result.build?.id) state.builtSource = null;
+      if (state.build?.id !== result.build?.id) state.builtBytes = null;
       state.build = result.build;
       state.server = result.server;
       const runtimeError = result.last_error || null;
@@ -360,13 +473,13 @@
 
   $("build").addEventListener("click", () =>
     perform("build", async () => {
-      const submittedSource = source.value;
+      const submittedSource = state.bytes.slice();
       state.build = null;
-      state.builtSource = null;
+      state.builtBytes = null;
       setDiagnostics([]);
-      const result = await api("build", { source: submittedSource });
+      const result = await api("build", submittedSource);
       state.build = result.build;
-      state.builtSource = submittedSource;
+      state.builtBytes = submittedSource;
       renderEditor();
       renderServer();
       if (
@@ -444,12 +557,74 @@
   });
 
   source.addEventListener("input", () => {
-    state.selectedExample =
-      state.examples.find((example) => example.source === source.value)?.id ||
-      null;
+    if ($("source-view").value !== "hex") return;
+    clearTimeout(state.inspectTimer);
+    state.hexText = source.value;
+    state.inspection = null;
+    state.selectedExample = null;
+    const revision = ++state.revision;
+    state.epoch += 1;
+    showNotice("");
+    try {
+      state.bytes = parseHex(source.value);
+      state.inspectionPending = true;
+      setDiagnostics([]);
+      const bytes = state.bytes;
+      state.inspectTimer = setTimeout(() => inspectSource(bytes, revision), 150);
+    } catch (error) {
+      state.bytes = null;
+      state.inspectionPending = false;
+      setDiagnostics([{ path: "hex bytes", message: error.message }], "source");
+      selectTab("diagnostics");
+    }
+    renderValueEditors();
     renderEditor();
     renderServer();
   });
+  $("source-view").addEventListener("change", renderSource);
+  $("literal-select").addEventListener("change", () => {
+    state.literalSelection = $("literal-select").value;
+    renderLiteralSelection();
+  });
+  $("apply-literal").addEventListener("click", () => perform("edit", async () => {
+    const instruction = state.inspection?.instructions.find(item => String(item.index) === $("literal-select").value);
+    if (!instruction) throw localError("Select a literal instruction first.");
+    const value = $("literal-value").value;
+    let payload;
+    if (instruction.opcode === 1) {
+      payload = encoder.encode(value);
+      if (payload.length > 16384) throw localError("Text literals are limited to 16 KiB of UTF-8 bytes.");
+    } else if (instruction.opcode === 2) {
+      if (!/^-?\d+$/.test(value)) throw localError("Enter a whole signed 64-bit integer.");
+      const integer = BigInt(value);
+      if (integer < -(1n << 63n) || integer > (1n << 63n) - 1n)
+        throw localError("Integer is outside the signed 64-bit range.");
+      payload = new Uint8Array(8);
+      new DataView(payload.buffer).setBigInt64(0, integer, true);
+    } else if (instruction.opcode === 3) {
+      if (value !== "true" && value !== "false") throw localError("A boolean literal must be true or false.");
+      payload = Uint8Array.of(value === "true" ? 1 : 0);
+    } else throw localError("This instruction has no editable scalar literal.");
+    const length = state.bytes.length - instruction.payload_length + payload.length;
+    if (length > 65536) throw localError("The edited source would exceed 64 KiB.");
+    const bytes = new Uint8Array(length);
+    bytes.set(state.bytes.subarray(0, instruction.payload_offset));
+    bytes.set(payload, instruction.payload_offset);
+    bytes.set(state.bytes.subarray(instruction.payload_offset + instruction.payload_length), instruction.payload_offset + payload.length);
+    const view = new DataView(bytes.buffer);
+    view.setUint16(instruction.offset + 2, payload.length, true);
+    view.setUint32(12, length - 16, true);
+    await setSourceBytes(bytes);
+  }));
+  $("apply-port").addEventListener("click", () => perform("edit", async () => {
+    const value = $("source-port").value;
+    if (!/^\d+$/.test(value) || Number(value) > 65535)
+      throw localError("Server port must be an integer from 0 to 65535.");
+    if (state.inspection?.entry.kind !== "http") throw localError("This source has no HTTP entry.");
+    const bytes = state.bytes.slice();
+    new DataView(bytes.buffer).setUint16(state.inspection.entry_offset, Number(value), true);
+    await setSourceBytes(bytes);
+  }));
   source.addEventListener("scroll", () => {
     $("line-numbers").scrollTop = source.scrollTop;
   });
@@ -491,51 +666,31 @@
     });
   }
 
-  $("new-program").addEventListener("click", () => {
-    setSource(
-      JSON.stringify(
-        {
-          version: 1,
-          name: "Untitled program",
-          instructions: [{ id: "message", op: "text", value: "" }],
-          entry: { kind: "console", value: "message" },
-        },
-        null,
-        2,
-      ) + "\n",
-    );
-    source.focus();
-  });
+  $("new-program").addEventListener("click", () => perform("open", async () => {
+    // RVB1 header, one empty Text record, console entry referencing register 0.
+    const bytes = Uint8Array.of(0x52, 0x56, 0x42, 0, 1, 0, 0, 0, 1, 0, 1, 0, 6, 0, 0, 0, 1, 1, 0, 0, 0, 0);
+    await setSourceBytes(bytes, "untitled.rvb");
+  }));
 
   $("open-program").addEventListener("click", () => $("file-input").click());
   $("file-input").addEventListener("change", async () => {
     const file = $("file-input").files[0];
     if (!file) return;
-    try {
-      if (file.size > 64 * 1024)
-        throw new Error("This file exceeds the 64 KiB program source limit.");
-      setSource(await file.text());
-      showNotice(`Opened ${file.name}. Build to validate and run it.`);
-    } catch (error) {
-      showNotice(error.message, true);
-    } finally {
-      $("file-input").value = "";
-    }
+    await perform("open", async () => {
+      if (file.size > 65536) throw localError("This file exceeds the 64 KiB binary source limit.");
+      await setSourceBytes(new Uint8Array(await file.arrayBuffer()), file.name);
+      if (state.inspection) showNotice(`Opened ${file.name} as binary source. Build to create its executable.`);
+    });
+    $("file-input").value = "";
   });
 
   $("download-program").addEventListener("click", () => {
-    const name =
-      programInfo()
-        .name.toLowerCase()
-        .replace(/[^a-z0-9_-]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 60) || "program";
-    const url = URL.createObjectURL(
-      new Blob([source.value], { type: "application/json" }),
-    );
+    if (!state.bytes) return;
+    const filename = state.filename.replace(/\.[^.]+$/, "").replace(/[^a-z0-9_-]+/gi, "-").slice(0, 80) || "program";
+    const url = URL.createObjectURL(new Blob([state.bytes], { type: "application/octet-stream" }));
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${name}.rivet.json`;
+    link.download = `${filename}.rvb`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
@@ -561,14 +716,11 @@
         arrow.textContent = "↗";
         arrow.setAttribute("aria-hidden", "true");
         button.append(number, name, arrow);
-        button.addEventListener("click", () =>
-          setSource(example.source, example.id),
-        );
+        button.addEventListener("click", () => loadExample(example));
         $("examples").append(button);
       }
       state.loaded = true;
-      if (state.examples[0])
-        setSource(state.examples[0].source, state.examples[0].id);
+      if (state.examples[0]) await loadExample(state.examples[0]);
       await refreshStatus();
     } catch (error) {
       setConnected(false);

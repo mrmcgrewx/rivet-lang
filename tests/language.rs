@@ -1,9 +1,9 @@
 use rivet::language::{Execution, compile};
 use serde_json::{Value, json};
 
-const HELLO: &str = include_str!("../examples/hello.rivet.json");
-const SERVER: &str = include_str!("../examples/server.rivet.json");
-const COMPUTED: &str = include_str!("../examples/computed.rivet.json");
+const HELLO: &str = include_str!("fixtures/legacy/hello.rivet.json");
+const SERVER: &str = include_str!("fixtures/legacy/server.rivet.json");
+const COMPUTED: &str = include_str!("fixtures/legacy/computed.rivet.json");
 
 fn console_program(instructions: Value, output: &str) -> Value {
     json!({

@@ -1,10 +1,10 @@
 use rivet::{
-    language::{Execution, compile},
+    language::{Execution, compile_binary as compile},
     runtime::ProgramServer,
 };
 use std::{hint::black_box, time::Instant};
 fn main() {
-    let source = include_str!("../examples/computed.rivet.json");
+    let source = include_bytes!("../examples/computed.rvb");
     let start = Instant::now();
     for _ in 0..2_000 {
         black_box(compile(black_box(source)).unwrap());
@@ -22,12 +22,13 @@ fn main() {
         "execute_computed: {} ns/op (20000 iterations)",
         start.elapsed().as_nanos() / 20_000
     );
-    let mut source: serde_json::Value =
-        serde_json::from_str(include_str!("../examples/server.rivet.json")).unwrap();
-    source["entry"]["port"] = 0.into();
-    let Execution::Http { port, routes } = compile(&source.to_string()).unwrap().execute().unwrap()
-    else {
-        panic!("server example must produce HTTP execution")
+    let mut source = include_bytes!("../examples/server.rvb").to_vec();
+    let offset = rivet::language::inspect_binary(&source)
+        .unwrap()
+        .entry_offset;
+    source[offset..offset + 2].copy_from_slice(&0u16.to_le_bytes());
+    let Execution::Http { port, routes } = compile(&source).unwrap().execute().unwrap() else {
+        panic!()
     };
     let mut server = ProgramServer::start(port, routes).unwrap();
     let start = Instant::now();

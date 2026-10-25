@@ -1,199 +1,62 @@
-# Rivet v1 language
+# Rivet language semantics — RVB1 binary source
 
-Rivet is a small typed, single-assignment dataflow language. JSON is its source
-serialization: each instruction defines one value, operands name earlier
-instructions, and an entry selects either console output or a local HTTP service.
-Rivet programs are parsed and type checked, lowered to an indexed register IR,
-then emitted as LLVM and compiled/linked to native code with Clang. A Rust
-interpreter executes the same validated IR as a correctness reference. Programs
-are never evaluated as JavaScript or interpolated host source.
+The canonical program is an actual binary `.rvb` file. The [RVB1 format](BINARY-FORMAT.md) defines exact header, opcode, type, payload and entry bytes. There is no required text syntax, embedded JSON source, or name table. A readable disassembly is an inspection view generated from the file. CLI `inspect`, `check`, `build`, `run`, `interpret` and the GUI all consume binary bytes.
 
-## Source structure
+## Values and operations
 
-A source file is a UTF-8 JSON object with these four required fields:
+Each instruction defines one immutable value. Its zero-based position is its numeric register ID; operands may reference only earlier definitions. Values have types `Text`, `Int`, `Bool`, and `Json`. The record declares a type tag which must match its operation. There are no implicit conversions.
 
-```json
-{
-  "version": 1,
-  "name": "Greeting",
-  "instructions": [
-    { "id": "message", "op": "text", "value": "Hello, world!" }
-  ],
-  "entry": { "kind": "console", "value": "message" }
-}
-```
-
-`version` must be the integer `1`. `name` contains 1–128 UTF-8 bytes. The
-`instructions` array determines execution order. An ID is 1–64 ASCII characters,
-starting with a letter or underscore and continuing with letters, digits, or
-underscores. IDs must be unique. References can name only earlier valid
-instructions; self references, forward references, and missing IDs are errors.
-
-Unknown fields are errors on program, instruction, entry, and route objects.
-Instruction fields depend on the selected operation. The keys in an `object`
-instruction's `fields` are user-defined JSON keys, so arbitrary string keys are
-allowed there. Field order does not affect semantics. JSON source comments and
-trailing commas are invalid. Source is parsed by `serde_json`; duplicate JSON
-object keys follow that parser's last-value behavior. Use unique JSON keys to
-avoid ambiguity. Duplicate instruction IDs and route paths are always rejected.
-
-## Types and instructions
-
-| Operation | Required fields besides `id` and `op` | Result | Semantics |
+| Opcode | Inspection name | Result | Meaning |
 | --- | --- | --- | --- |
-| `text` | `value`: string | `Text` | Exact UTF-8 text; no interpolation. |
-| `int` | `value`: integer | `Int` | Signed 64-bit integer, from −9223372036854775808 to 9223372036854775807. |
-| `bool` | `value`: boolean | `Bool` | JSON `true` or `false`. |
-| `concat` | `values`: array of `Text` IDs | `Text` | Join values in the supplied order without separators. An empty list produces empty text. |
-| `add` | `left`, `right`: `Int` IDs | `Int` | Checked signed addition. Overflow is an execution error. |
-| `to_text` | `value`: `Text`, `Int`, or `Bool` ID | `Text` | Preserve text; use signed decimal integer formatting; format booleans as `true` or `false`. |
-| `object` | `fields`: object mapping JSON keys to IDs | `Json` | Construct a JSON object; preserve text, integer, boolean, and nested object types. An empty object is valid. |
+| `01` | `text` | Text | Exact UTF-8 payload, including embedded NUL. |
+| `02` | `int` | Int | Signed 64-bit little-endian two's-complement literal. |
+| `03` | `bool` | Bool | One byte, exactly 0 or 1. |
+| `10` | `concat` | Text | Concatenate referenced Text values in operand order. Empty gives empty text. |
+| `11` | `add` | Int | Checked signed addition of two Int values; overflow fails execution. |
+| `12` | `to_text` | Text | Text identity, signed decimal integer formatting, or `true`/`false` for Bool. Json is rejected. |
+| `20` | `object` | Json | Construct an object from sorted unique UTF-8 keys and typed value references; preserve scalar/nested object types. |
 
-There are no implicit conversions. `concat` does not accept integers until they
-are converted with `to_text`. `to_text` does not accept `Json`. An integer source
-literal cannot use fractional or floating-point notation, including `1.0`.
+Hexadecimal opcode values are notation in this specification; the file stores numeric bytes. Operation names, `%0` register labels, and readable comments are produced by the inspector, not stored source tokens. Object keys must be strictly increasing by UTF-8 byte order and may include Unicode/control characters. Duplicate keys and noncanonical field order are rejected.
 
-Every instruction runs exactly once, in source order, each time a compiled
-program executes. This includes instructions unused by the entry. An error in an
-unused instruction still fails execution. There are no loops, branches,
-recursion, mutable variables, arrays, null values, files, subprocesses, or
-external network operations in v1.
+All instructions evaluate once in source order, including unused instructions. An error in an unused instruction still fails execution. Optimizations must preserve observable failure order. There are no loops, user branches, recursion, mutable variables, arrays, null, filesystem operations, subprocess operations, or external network operations in the language.
 
-## Console entry
+## Entries
 
-```json
-{ "kind": "console", "value": "message" }
-```
+A console entry (header tag 1) names one Text register. Output is its exact bytes plus one newline. A value ending in newline therefore produces two. Computation must succeed before console output starts.
 
-The referenced value must have type `Text`. Execution produces that exact
-text followed by one newline. A text value already ending in a newline therefore
-produces an additional newline. The runtime emits the complete output only after
-successful execution.
+An HTTP entry (tag 2) contains a port and zero to 32 routes. Each route stores an ASCII path, status and Json body reference. GET is implicit. Port 0 requests an available port; all listeners bind IPv4 loopback. Paths start with `/`, have at most 2048 bytes, and exclude whitespace, controls, query/fragment markers and non-ASCII bytes. Paths are unique. Status may be 200–299 except 204/205, whose bodies would be invalid.
 
-## HTTP entry
+Route values are computed once at server startup. The runtime serves exact JSON with content type `application/json; charset=utf-8`. Paths match exactly after query stripping. Missing routes yield 404; unsupported methods yield 405. Percent escapes remain literal. Requests cannot affect program values in this version.
 
-```json
-{
-  "kind": "http",
-  "port": 8787,
-  "routes": [
-    { "method": "GET", "path": "/hello", "status": 200, "body": "response" }
-  ]
-}
-```
+## Validation, execution, and inspection
 
-`port` is an integer from 0 through 65535. Port `0` asks the operating system to
-choose an available port. The runtime always binds to IPv4 loopback
-(`127.0.0.1`). There can be up to 32 routes, including zero. Each route requires:
+The decoder validates the full file before producing typed IR. It checks the magic/version/flags, declared lengths, reserved fields, opcode/result tags, literal encodings, references/types, field ordering, entries and bounds. It rejects truncation and all trailing bytes. Diagnostics identify an absolute byte offset and the error; no JSON parser or host-language evaluation occurs.
 
-- `method`: exactly `GET`.
-- `path`: a unique exact ASCII path of at most 2,048 bytes beginning with `/`,
-  without whitespace, control characters, a query (`?`), or a fragment (`#`).
-- `status`: an integer from 200 through 299, excluding bodyless statuses 204 and
-  205.
-- `body`: the ID of a `Json` value created by `object`.
+`rivet inspect examples/hello.rvb` decodes the two literals, concatenation and console entry into readable typed registers. The workbench uses the same inspection API and absolute record/payload offsets to edit bytes. Raw hexadecimal editing can change any instruction; saving always writes binary bytes, not a hex-text file. Invalid edits remain inspectable as raw bytes but cannot build.
 
-The runtime serves the program-defined body with content type
-`application/json; charset=utf-8`. It matches paths exactly after removing the
-request query string. Missing routes return 404; unsupported methods return 405.
-Percent escapes in paths are literal characters rather than instructions to the
-language compiler to decode the path.
+`compile_binary` lowers directly into the same private typed IR used by native generation and the reference interpreter. Native lowering emits LLVM checked arithmetic and calls to C helpers. Clang performs optimization and code generation. Artifacts preserve `.ll`, `.s` and `.build.json` for inspection. Runtime overflow and computed-value errors remain distinct from structural/type errors. Native helper diagnostics name the failed operation/limit; checked arithmetic also identifies the register.
 
-All route bodies are computed once when the program starts, and then served for
-each request. The v1 language cannot inspect request data or maintain request
-state. The interpreter returns an HTTP service definition; the runtime owns
-binding, requests, and shutdown.
-
-## Compilation, IR, and diagnostics
-
-Compilation validates the complete program before producing an executable
-artifact. IDs are replaced by indexed, typed registers. For the Hello world
-example, the IR includes:
-
-```text
-rivet-ir v1 "Hello world"
-%0: Text = text "Hello, "    ; greeting
-%1: Text = text "world!"    ; audience
-%2: Text = concat [%0, %1]    ; message
-entry console %2
-```
-
-The actual IR uses private Rust instruction enums, distinct `Text`, `Int`,
-`Bool`, and `Json` register wrappers, and typed entry references. This text is a
-deterministic inspection view, not executable source or a saved bytecode format.
-Object fields are lowered in sorted key order. Compilation does not perform
-custom constant folding or dead-code elimination at this stage. Native lowering
-then emits LLVM with checked overflow branches and direct C helper calls; Clang
-optimizes and generates native machine code. Build saves LLVM and assembly for
-inspection. See `NATIVE-PLAN.md` for the native ABI and runtime boundary.
-
-Build diagnostics contain `path` and `message`, for example:
-
-```json
-{
-  "path": "$.instructions[2].values[1]",
-  "message": "expected Text, found Int"
-}
-```
-
-Schema and type diagnostics can include multiple errors from one build. A later
-reference to an invalid earlier instruction can produce an additional reference
-diagnostic. JSON syntax errors use path `$` and include a line and column.
-Invalid programs have no executable artifact.
-
-Execution errors are separate from compilation diagnostics. Addition overflow
-identifies the instruction ID and register. Native computed-value size errors
-identify the failed operation/limit; the reference interpreter also includes
-instruction context. A
-console-output size error identifies the entry output limit. Execution errors
-return no partial console output or service definition.
+`encode_binary` deterministically writes typed IR back into the canonical binary encoding. It is used for roundtrip/testing and is not a prerequisite for writing source. The optional fixture writer authors opcode bytes directly. The old JSON compiler remains a library compatibility/test path; public source commands do not use it, and its files live under `tests/fixtures/legacy/`.
 
 ## Resource limits
 
 | Resource | Limit | Enforcement |
 | --- | --- | --- |
-| Source | 65,536 UTF-8 bytes, including whitespace | Before JSON parsing |
-| Name | 1–128 UTF-8 bytes | Compilation |
-| Instructions | 256 | Compilation |
-| Instruction ID | 1–64 ASCII characters | Compilation |
-| One literal `Text` | 16,384 UTF-8 bytes | Compilation |
-| One computed `Text` | 65,536 UTF-8 bytes | Execution |
-| One computed `Json` | 65,536 serialized JSON bytes | Execution |
-| Console output | 65,536 UTF-8 bytes, including the appended newline | Execution |
-| HTTP routes | 32 | Compilation |
-| HTTP route path | 2,048 ASCII bytes, including the leading `/` | Compilation |
+| Complete binary source | 65,536 bytes | Before decoding |
+| Instruction count | 256 | Decoding |
+| One literal Text | 16,384 UTF-8 bytes | Decoding |
+| One computed Text | 65,536 bytes | Execution |
+| One computed Json | 65,536 serialized JSON bytes | Execution |
+| Console output including newline | 65,536 bytes | Execution |
+| HTTP routes | 32 | Decoding |
+| HTTP route path | 2048 ASCII bytes | Decoding |
 
-JSON size includes braces, commas, keys, colons, string quotes, and escaping.
-For example, a control character can occupy one byte in `Text` but six bytes as a
-JSON `\u0000` escape. Nested objects count in full. Concatenation checks the
-result size before allocating it. Object construction checks each field before
-retaining its cloned value, preventing repeated nested references from growing
-an unchecked output object. Source parsing also retains `serde_json`'s default
-recursion-depth limit.
+Record payload lengths and register/count fields are unsigned 16-bit. Header body length is unsigned 32-bit but must match the bounded file exactly. Decoder loops/allocations are constrained by remaining input and instruction/route limits. Computed JSON size includes escaping, keys and recursively nested objects. These are per-value bounds, not an aggregate hostile-program memory quota.
 
-These limits define bounded prototype behavior; they are not performance claims
-or a complete security sandbox for executing hostile programs.
+HTTP transport permits 8 KiB headers, 512 KiB bodies, one request per connection, and a two-second read deadline. Framing ambiguity/Transfer-Encoding are rejected. SIGINT/SIGTERM stops native services cleanly; SIGKILL/crashes have no graceful-cleanup guarantee.
 
-## Examples and checks
+## Examples
 
-- [`hello.rivet.json`](../examples/hello.rivet.json) concatenates two text values
-  and prints `Hello, world!`.
-- [`server.rivet.json`](../examples/server.rivet.json) defines `GET /hello` on
-  port 8787 with body `{"message":"hello world"}`.
-- [`computed.rivet.json`](../examples/computed.rivet.json) adds 40 and 2,
-  converts the result to text, concatenates a message, and builds nested JSON
-  with integer and boolean fields. `GET /computed` uses an assigned port.
-
-From the repository root:
-
-```sh
-cargo test --locked --test language
-cargo run --locked -- check examples/hello.rivet.json
-cargo run --locked -- run examples/hello.rivet.json
-cargo run --locked -- run examples/server.rivet.json
-```
-
-The focused test suite verifies executed examples and edits, deterministic typed
-lowering, value composition, literal and operand types, error paths, boundary
-limits, overflow, HTTP entry validation, and repeatable execution. Network and
-browser lifecycle validation belong to the runtime and workbench suites.
+- [`hello.rvb`](../examples/hello.rvb): 49 binary bytes, prints `Hello, world!`.
+- [`server.rvb`](../examples/server.rvb): 64 binary bytes, GET `/hello` on port 8787 returning `{"message":"hello world"}`.
+- [`computed.rvb`](../examples/computed.rvb): 159 binary bytes, adds 40+2, converts/concatenates text, constructs nested typed JSON, serves `/computed` on an assigned port.

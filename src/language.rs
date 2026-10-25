@@ -1,11 +1,14 @@
-//! Rivet v1 validation, typed register lowering, and bounded interpretation.
+//! Rivet binary source validation, typed register lowering, and bounded interpretation.
 
 use serde::Serialize;
 use serde_json::{Map, Value};
 use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Write};
 
+mod binary;
 mod native_codegen;
+
+pub use binary::{BinaryInspection, BinaryInstructionInfo, compile_binary, inspect_binary};
 
 const MAX_SOURCE_BYTES: usize = 64 * 1024;
 const MAX_INSTRUCTIONS: usize = 256;
@@ -170,7 +173,8 @@ pub struct CompiledProgram {
     entry: Entry,
 }
 
-/// Parse and validate a source program, then resolve symbolic IDs to typed registers.
+/// Legacy JSON parser retained for historical semantic tests and migration utilities.
+/// Canonical `.rvb` source is decoded directly by [`compile_binary`], without this parser.
 pub fn compile(source: &str) -> Result<CompiledProgram, Vec<Diagnostic>> {
     if source.len() > MAX_SOURCE_BYTES {
         return Err(vec![Diagnostic {
