@@ -1,9 +1,11 @@
 # Project state
 
-State version: 24. Updated: 2026-10-25.
+State version: 25. Updated: 2026-10-25.
 Public repository: https://github.com/mrmcgrewx/rivet-lang
 
 ## Current objective and implementation
+
+**Project concluded at the user's request on October 25, 2026.** Preserve Rivet as a completed learning experiment. The [retrospective](POSTMORTEM.md) records the initial scope mistakes, implemented capabilities, measured findings and decision to stop. No further language development, optimization or authoring study is active. Unimplemented roadmap items are historical ideas; resume development only on a new explicit request. This closure changes documentation only and does not archive or delete the repository.
 
 The same-model authoring pilot is complete. Protocol `b5066c8` and frozen harness/packets/corpora `7461e96` preceded nine fresh workers; `eb39fdc` preserves their independent sources and raw results. All used `gpt-6-astra` / `xhigh`; all passed their first development submission and 878 withheld cases per language, with zero retries. No compiler/runtime/UI or existing example changed. The [results](AGENT-EXPERIMENT-RESULTS.md) retain actual input/cache/output token counters and 690 runtime/RSS observations. C led large Two Sum/list addition; Rust led balanced median and used the fewest output tokens. Rivet beat Rust on large Two Sum but had substantial tiny-input map overhead. One authoring sample per cell does not establish a general ranking or reliability advantage.
 
@@ -47,6 +49,7 @@ Read `BINARY-PLAN.md`, `TWO-SUM-PLAN.md`, `ADD-TWO-NUMBERS-PLAN.md`, `MEDIAN-PLA
 | Unchanged before/after comparison | Complete | Clean `b72a8bd` and `c279276`, 128 cases/552 observations each; 5.37× balanced search improvement, 3.02× remaining C gap; all safety/source/benchmark contracts retained |
 | Same-model authoring pilot | Complete | Frozen `7461e96`, evidence `eb39fdc`: nine fresh workers, all first-pass, 878 holdouts/language, actual token counters and 690 runtime/RSS records; one sample per cell |
 | Authoring-pilot acceptance | Complete | Independent review, 576 extra cases, clean reproduction, 100 Rust/18 browser tests, actual agent binary through UI, successful general and C ASan/UBSan CI |
+| Project retrospective and closure | Complete | `POSTMORTEM.md`; active development concluded at the user's request, with code and evidence preserved for study |
 
 Commits remain the ledger; no Issues/Projects board. Coordinator owns shared docs, backend integration, examples, Git and final acceptance. Agents own binary codec/spec/tests, binary UI/browser tests, and independent review as specified in the committed plan. All contributions must persist handoffs.
 
@@ -58,6 +61,8 @@ A binary file is not encryption or intrinsically exclusive to AI. Literal string
 
 ## Handoff
 
-The authoring pilot, native fuel optimization and prior milestones are complete; no required acceptance work remains. The live workbench on port 7331 now displays the independent agent's median source and successful 2.5 output; its size-profile artifact is `.rivet/builds/session-55181-1792963433316003000-0/2/program`. Speed-profile pilot artifacts remain under `.rivet/agent-language-v1/final-builds/`; published source snapshots can rebuild them. Preserve the live session and frozen evidence. Future work should follow `ROADMAP.md`, preserve version compatibility and keep algorithm logic out of generic runtime helpers. Fixed map setup, immutable-list temporary allocations and checked array access are concrete improvement candidates, not authorization to remove checks or claims of C parity. A broader authoring study needs more independent runs and unfamiliar tasks.
+No implementation work remains authorized by the completed experiment. Read `POSTMORTEM.md` before treating any older plan or suggested optimization as active work. Preserve the repository and frozen evidence; no repository archive, process shutdown or artifact deletion was requested.
 
-Continue from the binary specification and preserve canonical source bytes, not the old JSON frontend. Do not use historical JSON-oriented screenshots or completion records as proof of current acceptance. New language features or measured AI-authoring experiments require their own scoped design and validation.
+At the final UI verification, the workbench on port 7331 displayed the independent agent's median source and successful 2.5 output; its size-profile artifact was `.rivet/builds/session-55181-1792963433316003000-0/2/program`. Speed-profile pilot artifacts were retained under `.rivet/agent-language-v1/final-builds/`; published source snapshots can rebuild them. These paths record that completed session, not a guarantee that its processes remain running.
+
+If the user explicitly reopens development, preserve the binary specification, version compatibility, runtime safety semantics and historical benchmark evidence. New features or authoring studies need their own scoped design and validation. The historical roadmap is context, not standing authorization.

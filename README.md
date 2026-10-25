@@ -8,7 +8,7 @@ Rivet programs are authored as **binary `.rvb` source files**. Numeric opcodes, 
 
 A local browser workbench provides the human interface: decode the source, inspect its bytes, edit values, build, and run. The readable view is generated from the binary file. JSON and textual assembly are not required source formats.
 
-**Status:** experimental prototype. Binary programs support console output, local HTTP services, and computations with runtime input, loops, arrays, integer maps, linked lists and floating-point values. Native output targets **macOS on Apple Silicon**. AI-generation reliability and broad performance competitiveness remain research questions; the [capability roadmap](docs/ROADMAP.md) makes those goals explicit.
+**Status:** concluded learning experiment, preserved for study and sharing. Active development ended on October 25, 2026; see the [project retrospective](docs/POSTMORTEM.md) for the findings and closing decision. Binary programs support console output, local HTTP services, and computations with runtime input, loops, arrays, integer maps, linked lists and floating-point values. Native output targets **macOS on Apple Silicon**. AI-authoring advantages and broad performance competitiveness remain unproven. The [earlier roadmap](docs/ROADMAP.md) is historical context, not planned work.
 
 ## Source is binary; output is native
 
@@ -220,6 +220,7 @@ HTTP is a local experimental subset: IPv4 loopback, exact GET routes, sequential
 
 ## Documentation
 
+- [Project retrospective and closing decision](docs/POSTMORTEM.md)
 - [Binary format and authoring](docs/BINARY-FORMAT.md)
 - [Computation format (RVB2)](docs/COMPUTE-FORMAT.md)
 - [Two Sum algorithm](docs/TWO-SUM.md)

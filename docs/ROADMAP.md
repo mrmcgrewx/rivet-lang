@@ -1,6 +1,8 @@
 # Rivet capability and performance direction
 
-The user's goal is a practical language that AI agents can use in place of conventional human-oriented languages, with comparable or better performance on relevant workloads. The authored source remains an actual binary file with a human inspection GUI. That goal guides feature choices; it is not a claim that the current prototype already replaces Python, Java or JavaScript.
+**Historical roadmap — active development concluded October 25, 2026.** The user chose to close the experiment and study machine execution before considering further research. The ideas below are retained as context, not scheduled work or instructions to continue. See the [retrospective and closing decision](POSTMORTEM.md).
+
+The original goal was a practical language that AI agents could use in place of conventional human-oriented languages, with comparable or better performance on relevant workloads. The authored source remains an actual binary file with a human inspection GUI. That goal guided feature choices; the prototype did not establish that it could replace Python, Java or JavaScript.
 
 ## How exercises grow the language
 
