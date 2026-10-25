@@ -67,6 +67,7 @@ Serve `/`, `/app.js`, `/style.css` from embedded assets. CLI: `rivet check FILE`
 
 - Language agent: `src/language.rs`, `examples/`, `tests/language.rs`, `docs/LANGUAGE.md`, `docs/LANGUAGE-HANDOFF.md`. No Cargo, backend, or UI edits.
 - UI agent: `web/`, `tests/ui/`, `package.json`, `package-lock.json`, `playwright.config.js`, `docs/UI-HANDOFF.md`. Implement editor, examples, new/open/download, build/run/stop, diagnostics, output, IR, live status, request inspector, and browser automation tests. No Rust edits.
+- Review agent: read all implementation and tests; write only `docs/REVIEW-HANDOFF.md` with actionable correctness/acceptance gaps and evidence. No production edits or Git mutations.
 - Coordinator: Cargo/toolchain files, `src/lib.rs`, `src/main.rs`, `src/runtime.rs`, `src/workbench.rs`, backend/integration tests, CI, README, shared docs, integration, actual UI verification, final review and clean-checkout reproduction.
 
 All agents read AGENTS.md and this committed contract. Shared worktree is safe only within ownership. Agents persist handoff and meaningful test results; coordinator performs guarded commits and pushes for all contributions to avoid concurrent Git index operations.
