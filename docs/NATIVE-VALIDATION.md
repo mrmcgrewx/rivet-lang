@@ -44,7 +44,25 @@ The HTTP example built through the same UI path to a 36,504-byte executable. Sta
 
 ![Generated LLVM inspection](evidence/native-llvm.png)
 
-The clean-checkout run follows this integrated checkpoint.
+## Clean public checkout
+
+Cloned `https://github.com/mrmcgrewx/rivet-lang.git` after pushing integrated checkpoint **`00116f95fee0bb6bac236d9d34974825c3131e41`**, into a new temporary directory. No `target/`, `node_modules/`, native artifacts, or application files were copied from the working checkout. The host's existing Rust toolchain, package download caches, and installed Chromium were available; this was a clean source/build tree, not a clean OS.
+
+Ran the reproduction commands below through `npm test`: formatting and strict Clippy passed; all 45 Rust tests passed; release build passed; C baseline/size and UBSan passed; `npm ci` installed the locked dependencies; Chromium installation verification passed; all 10 browser scenarios passed in 12.5 seconds. The test workbench and children stopped afterward. `git status --porcelain` returned no tracked or untracked changes (ignored build outputs remained).
+
+The clean release compiler then built Hello and server into `.rivet/smoke/`. `file` identified both as **Mach-O 64-bit executable arm64**; `otool -L` listed only `/usr/lib/libSystem.B.dylib` for each. Hello measured 34,760 bytes; server measured 36,504 bytes.
+
+Copied just those two executable files into another empty temporary directory. With all environment variables cleared except `PATH=/nonexistent`, the copy of Hello emitted exact `Hello, world!` plus newline. The server copy answered three real requests with exact status/content type/body and exited zero on SIGTERM. No workbench from that clean clone was running during this smoke test. The stronger automated artifact tests additionally remove the original executable before running its copy after workbench shutdown.
+
+The integrated checkpoint's [GitHub Actions run](https://github.com/mrmcgrewx/rivet-lang/actions/runs/40217317244) completed successfully: formatting/Clippy, Rust tests, native C/UBSan, and browser acceptance all passed on the independent macOS CI runner.
+
+## Completion and usable local artifacts
+
+Both corrected native milestones meet the acceptance contract. The final documentation commit records the clean-checkout evidence; it does not change production behavior from `00116f9`. Native core: `279dd92`; actual native UI acceptance/review/benchmark: `00116f9`; final evidence: the commit introducing this completion section.
+
+The development checkout additionally contains ignored, ready-to-run `.rivet/deliverables/hello` and `.rivet/deliverables/server` with their sidecars. These are local outputs, not committed binaries. The workbench is available at `http://127.0.0.1:7331/` when its process is running. No program server was left running after interactive verification.
+
+Remaining language features (loops/functions/branches/request data), aggregate memory budgets, handwritten emission, cross-platform verification, distribution signing, and broader performance/AI-generation studies are explicitly outside these completed milestones.
 
 ## Efficiency experiment
 
