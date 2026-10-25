@@ -1,9 +1,11 @@
 # Project state
 
-State version: 13. Updated: 2026-10-25.
+State version: 14. Updated: 2026-10-25.
 Public repository: https://github.com/mrmcgrewx/rivet-lang
 
 ## Current objective and implementation
+
+New work in progress: Add Two Numbers as binary source with real linked nodes, reusable copy/division/remainder/assertion operations, and a native digit-by-digit algorithm. `ADD-TWO-NUMBERS-PLAN.md` fixes encoding, semantics, ownership and acceptance before delegation. `ROADMAP.md` records the user's broader goal of an AI-oriented language competitive with established languages, distinguishing implemented features from future capabilities and performance measurements. No new completion is claimed yet.
 
 Two Sum is complete. RVB2 supports typed mutable registers, input, arrays/maps, comparisons, checked subtraction and native control flow. The 231-byte `examples/two-sum.rvb` contains the complete one-pass algorithm. CLI and GUI supply runtime data separately, and one native build handles multiple cases. `TWO-SUM-PLAN.md` fixed the contract before delegation (`fe95cd0`); implementation is published at `9594d6f`. `COMPUTE-FORMAT.md` specifies the bytes and `TWO-SUM.md` explains the algorithm. Integrated tests, review, actual browser interaction and clean public-clone reproduction passed. See `TWO-SUM-VALIDATION.md`.
 
