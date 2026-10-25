@@ -73,6 +73,10 @@ def compute_checks(executable):
             (json.dumps(large, separators=(",", ":")) + "\n").encode())
     success("read-int", b" " * 262143 + b"1", b"[1]\n")
     success("quota-array-ok", b"", b"")
+    success("fuel-getter-last", b"", b"")
+    shared_fuel = subprocess.run([executable, "fuel-getter"], input=b"", capture_output=True, timeout=10)
+    assert shared_fuel.returncode == 1 and not shared_fuel.stdout
+    assert shared_fuel.stderr == b"Rivet runtime: compute instruction limit exceeded (1000000)\n"
     for data in [b"", b" \t\r\n"]:
         failure("read-int", data, "missing an integer")
     for data in [b"+1", b"-", b"1x", b"1.0", b"0x12", b"1\0", b"\xff", "\u00a01".encode()]:

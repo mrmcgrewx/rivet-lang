@@ -322,6 +322,10 @@ void rv2_tick(void) {
     ++rv2_steps;
 }
 
+uint64_t *rv2_fuel_counter(void) {
+    return &rv2_steps;
+}
+
 static int rv2_space(unsigned char byte) {
     return byte == ' ' || (byte >= '\t' && byte <= '\r');
 }

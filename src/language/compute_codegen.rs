@@ -13,7 +13,7 @@ declare ptr @rv2_array_make(ptr, i64)
 declare ptr @rv2_map_new()
 declare i64 @rv2_map_get(ptr, i64, i64)
 declare void @rv2_map_put(ptr, i64, i64)
-declare void @rv2_tick()
+declare ptr @rv2_fuel_counter() nounwind willreturn memory(none)
 declare void @rv2_return(ptr)
 declare ptr @rv2_read_list()
 declare ptr @rv2_list_cons(i64, ptr)
@@ -24,6 +24,27 @@ declare void @rv2_return_list(ptr)
 declare void @rv2_return_float(double)
 declare void @rv_fail(ptr, i64) noreturn
 declare void @rv_cleanup()
+"#;
+
+// This is the exact existing C tick semantics, exposed only for optimization.
+// The C definition remains the emitted/linkable fallback. The stable pure getter
+// avoids depending on a private runtime symbol or embedding its object layout.
+const INLINE_FUEL: &str = r#"@rv2_fuel_message = private unnamed_addr constant [44 x i8] c"compute instruction limit exceeded (1000000)"
+
+define available_externally void @rv2_tick() alwaysinline {
+entry:
+  %counter = call ptr @rv2_fuel_counter()
+  %steps = load i64, ptr %counter
+  %exhausted = icmp eq i64 %steps, 1000000
+  br i1 %exhausted, label %failed, label %increment
+failed:
+  call void @rv_fail(ptr @rv2_fuel_message, i64 44)
+  unreachable
+increment:
+  %next = add i64 %steps, 1
+  store i64 %next, ptr %counter
+  ret void
+}
 "#;
 fn llvm_type(kind: RegisterType) -> &'static str {
     match kind {
@@ -344,7 +365,7 @@ pub(super) fn emit(program: &ComputeProgram) -> String {
     }
     emitter.body.push_str("}\n");
     format!(
-        "; Rivet native LLVM IR v2; direct control flow from validated binary source.\nsource_filename = \"rivet-compute-program\"\n{constants}\n{DECLARATIONS}\n{}",
+        "; Rivet native LLVM IR v2; direct control flow from validated binary source.\nsource_filename = \"rivet-compute-program\"\n{constants}\n{DECLARATIONS}\n{INLINE_FUEL}\n{}",
         emitter.body
     )
 }

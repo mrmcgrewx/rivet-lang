@@ -3,6 +3,18 @@
 #include <assert.h>
 
 static void check_compute(void) {
+    uint64_t *counter = rv2_fuel_counter();
+    assert(counter == &rv2_steps && *counter == 0);
+    rv2_tick();
+    assert(*counter == 1);
+    *counter = 39;
+    for (size_t index = 0; index < 16; ++index) {
+        assert(rv2_fuel_counter() == counter && *counter == 39);
+    }
+    rv2_tick();
+    assert(*counter == 40);
+    rv_cleanup();
+    assert(rv2_fuel_counter() == counter && *counter == 0);
     int64_t input[] = {INT64_MIN, 0, INT64_MAX};
     void *array = rv2_array_make(input, 3);
     input[1] = 123;
@@ -47,10 +59,12 @@ static void check_compute(void) {
     }
     assert(rv2_map_get(full, 5000, -99) == -99);
     for (uint64_t step = 0; step < RV2_MAX_STEPS; ++step) rv2_tick();
-    assert(rv2_steps == RV2_MAX_STEPS);
+    assert(rv2_steps == RV2_MAX_STEPS && *counter == RV2_MAX_STEPS);
+    assert(rv2_fuel_counter() == counter && *counter == RV2_MAX_STEPS);
     rv_cleanup();
     rv_cleanup();
     assert(rv2_steps == 0 && rv2_allocation_charge == 0 && rv2_input == NULL);
+    assert(rv2_fuel_counter() == counter && *counter == 0);
     rv2_tick();
     assert(rv2_steps == 1);
     rv_cleanup();
@@ -89,6 +103,13 @@ int main(int argc, char **argv) {
         if (strcmp(argv[1], "quota-array") == 0) (void)rv2_array_make(values, 1);
     } else if (strcmp(argv[1], "fuel") == 0) {
         for (uint64_t step = 0; step <= RV2_MAX_STEPS; ++step) rv2_tick();
+    } else if (strcmp(argv[1], "fuel-getter-last") == 0 || strcmp(argv[1], "fuel-getter") == 0) {
+        uint64_t *counter = rv2_fuel_counter();
+        *counter = RV2_MAX_STEPS - 1;
+        rv2_tick();
+        assert(*counter == RV2_MAX_STEPS);
+        assert(rv2_fuel_counter() == counter && *counter == RV2_MAX_STEPS);
+        if (strcmp(argv[1], "fuel-getter") == 0) rv2_tick();
     } else if (strcmp(argv[1], "wrong-type") == 0) {
         (void)rv2_array_len(rv2_map_new());
     } else {

@@ -1,11 +1,11 @@
 # Project state
 
-State version: 20. Updated: 2026-10-25.
+State version: 21. Updated: 2026-10-25.
 Public repository: https://github.com/mrmcgrewx/rivet-lang
 
 ## Current objective and implementation
 
-Active work: close the native median performance gap while preserving all safety semantics. `NATIVE-OPTIMIZATION-PLAN.md` fixes the diagnostic evidence, first inline-fuel candidate, ownership and unchanged before/after benchmark contract before implementation. Prior median completion/results below remain historical evidence. No new speedup is claimed yet.
+Active work: close the native median performance gap while preserving all safety semantics. `NATIVE-OPTIMIZATION-PLAN.md` fixed ownership and the unchanged comparison contract at `51745ac`. The inline-fuel candidate is implemented: the same counter/check is visible to LLVM, backed by the unchanged C tick and a stable-address getter. CPU sampling confirmed the old helper dominated the balanced workload; preliminary timings support retaining this candidate. Existing Rust, new boundary, C/UBSan and browser checks passed, as did an actual workbench native run. `NATIVE-OPTIMIZATION-VALIDATION.md` records evidence. Clean public reproduction, full default before/after measurements and CI remain before completion. No final new speedup is claimed yet.
 
 Median of Two Sorted Arrays is complete at implementation `b72a8bd569f217ce9ce31358c261fe0e099b94f5`. `MEDIAN-PLAN.md` fixed additive Float encoding, logarithmic binary-partition source, speed profile, comparison methodology and ownership at `cccf624` before delegation. The 803-byte/81-operation source passes 275 oracle cases under three native profiles and 3135 exhaustive small reference cases. A fresh public clone passed all 96 Rust tests, C/UBSan, 18 browser scenarios and the benchmark correctness smoke; actual in-app runs and independent review passed. Public CI run `40233598578` succeeded. See `MEDIAN-VALIDATION.md` and `MEDIAN-REVIEW.md`.
 
@@ -50,6 +50,6 @@ A binary file is not encryption or intrinsically exclusive to AI. Literal string
 
 ## Handoff
 
-The current and prior milestones are complete; no required median acceptance work remains. `.rivet/median-deliverables/median` is a 34792-byte speed-profile standalone executable; the actual UI's size-profile artifact is 35336 bytes. The live release workbench on port 7331 includes median; actual UI verification ran odd/fractional results, both-empty failure and negative-half recovery using one build. Preserve the user's live session. Future work should follow `ROADMAP.md`, preserve version compatibility and keep algorithm logic out of generic runtime helpers. Performance work now has a concrete baseline; justify optimizations with equivalent semantics and repeatable comparisons instead of extrapolating from source encoding.
+The prior median milestone is complete; the native fuel optimization is undergoing final acceptance. `.rivet/optimization-deliverables/median` is the updated 34808-byte speed executable; the live workbench on port 7331 built a 35352-byte size executable and returned 2.5 from the unchanged binary source. Earlier artifacts remain available. Preserve the user's live session. Complete the comparison and clean-checkout gates in `NATIVE-OPTIMIZATION-PLAN.md`, then update this state with exact results and commits. Future work should follow `ROADMAP.md`, preserve version compatibility and keep algorithm logic out of generic runtime helpers.
 
 Continue from the binary specification and preserve canonical source bytes, not the old JSON frontend. Do not use historical JSON-oriented screenshots or completion records as proof of current acceptance. New language features or measured AI-authoring experiments require their own scoped design and validation.

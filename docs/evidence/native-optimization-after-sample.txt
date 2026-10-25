@@ -1,0 +1,52 @@
+Diagnostic CPU sample of optimized native median benchmark (working candidate).
+2026-10-25, macOS 26.5.2 arm64, Apple M1 Pro.
+/usr/bin/sample <owned benchmark PID> 3 1 -file optimized.sample.txt
+Workload: rivet-preloaded balanced_1000.txt 4000000 32 evaluate
+Sampling is diagnostic, not the reported benchmark timing.
+Absolute process paths and binary-image inventory omitted.
+
+Call graph:
+    2505 Thread_10429599   DispatchQueue_1: com.apple.main-thread  (serial)
+      2505 start  (in dyld) + 6992  [0x185d3fe00]
+        2483 main  (in rivet-preloaded) + 960  [0x104d28c80]
+        + 1683 rivet_bench_eval  (in rivet-preloaded) + 1408,1440,...  [0x104d29914,0x104d29934,...]
+        + 191 rivet_bench_eval  (in rivet-preloaded) + 1080  [0x104d297cc]
+        + ! 191 rv2_array_get  (in rivet-preloaded) + 48,0,...  [0x104d287b8,0x104d28788,...]
+        + 161 rivet_bench_eval  (in rivet-preloaded) + 996  [0x104d29778]
+        + ! 161 rv2_array_get  (in rivet-preloaded) + 28,24,...  [0x104d287a4,0x104d287a0,...]
+        + 153 rivet_bench_eval  (in rivet-preloaded) + 1184  [0x104d29834]
+        + ! 153 rv2_array_get  (in rivet-preloaded) + 12,24,...  [0x104d28794,0x104d287a0,...]
+        + 150 rivet_bench_eval  (in rivet-preloaded) + 1272  [0x104d2988c]
+        + ! 150 rv2_array_get  (in rivet-preloaded) + 48,0,...  [0x104d287b8,0x104d28788,...]
+        + 37 evaluate  (in rivet-preloaded) + 68,48,...  [0x104d292e4,0x104d292d0,...]
+        + 21 rivet_bench_eval  (in rivet-preloaded) + 128  [0x104d29414]
+        + ! 21 rv2_array_len  (in rivet-preloaded) + 4,0,...  [0x104d2875c,0x104d28758,...]
+        + 20 rivet_bench_eval  (in rivet-preloaded) + 1804  [0x104d29aa0]
+        + ! 20 bench_return_float  (in rivet-preloaded) + 12,48  [0x104d28848,0x104d2886c]
+        + 15 rivet_bench_eval  (in rivet-preloaded) + 96  [0x104d293f4]
+        + ! 15 bench_read_array  (in rivet-preloaded) + 4,36,...  [0x104d287dc,0x104d287fc,...]
+        + 15 rivet_bench_eval  (in rivet-preloaded) + 160  [0x104d29434]
+        + ! 15 rv2_array_len  (in rivet-preloaded) + 16,0,...  [0x104d28768,0x104d28758,...]
+        + 15 rivet_bench_eval  (in rivet-preloaded) + 1808  [0x104d29aa4]
+        + ! 15 bench_cleanup  (in rivet-preloaded) + 12  [0x104d288b8]
+        + 9 evaluate  (in rivet-preloaded) + 56  [0x104d292d8]
+        + ! 9 rivet_bench_eval  (in rivet-preloaded) + 24,12,...  [0x104d293ac,0x104d293a0,...]
+        + 9 rivet_bench_eval  (in rivet-preloaded) + 68  [0x104d293d8]
+        + ! 9 bench_read_array  (in rivet-preloaded) + 36,4  [0x104d287fc,0x104d287dc]
+        + 4 rivet_bench_eval  (in rivet-preloaded) + 40  [0x104d293bc]
+        +   4 rv2_fuel_counter  (in rivet-preloaded) + 0  [0x104d28678]
+        12 evaluate  (in rivet-preloaded) + 136,140  [0x104d29328,0x104d2932c]
+        10 main  (in rivet-preloaded) + 980,928,...  [0x104d28c94,0x104d28c60,...]
+
+Total number in stack (recursive counted multiple, when >=5):
+
+Sort by top of stack, same collapsed (when >= 5):
+        rivet_bench_eval  (in rivet-preloaded)        1692
+        rv2_array_get  (in rivet-preloaded)        655
+        evaluate  (in rivet-preloaded)        49
+        rv2_array_len  (in rivet-preloaded)        36
+        bench_read_array  (in rivet-preloaded)        24
+        bench_return_float  (in rivet-preloaded)        20
+        bench_cleanup  (in rivet-preloaded)        15
+        main  (in rivet-preloaded)        10
+

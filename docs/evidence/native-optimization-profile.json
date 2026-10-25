@@ -1,0 +1,121 @@
+{
+  "purpose": "Diagnostic sampling and emitted-code inspection; final timings are in separate unchanged default benchmark reports.",
+  "host": "Apple M1 Pro, macOS26.5.2 arm64, Apple Clang17.0.0",
+  "sample_command": "/usr/bin/sample <owned child PID> 3 1 -file <report>",
+  "source_sha256": "5bcc49fdc4a42226dd188d5068c0d8b9183970950edea77d94faacb9d4198c12",
+  "variants": {
+    "before": {
+      "original_llvm_sha256": "ff42cfe5b8b5d1392b87edcb3f5d72b828dc39890ffc4a693210cefb50a885f2",
+      "preloaded_llvm_sha256": "c6a3d51ebe34284e5e7fdcab033c693ef7d8a6c9ba6673732be6527336a97238",
+      "profiled_executable_sha256": "e944af905d2d23e4d0119afba77833788fad08204b711cb6f4dc5361e9a81676",
+      "workload": "rivet-preloaded balanced_1000.txt 2000000 32 evaluate",
+      "sampling_workload_output": {
+        "implementation": "rivet",
+        "mode": "evaluate",
+        "cases": 16,
+        "rounds": 2000000,
+        "calls": 32000000,
+        "warmup_calls": 512,
+        "elapsed_ns": 18053301000,
+        "checksum": 2250134000000,
+        "expected_checksum_per_round": 1125067,
+        "ticks_per_case": [
+          259,
+          296,
+          287,
+          313,
+          316,
+          297,
+          67,
+          314,
+          231,
+          314,
+          289,
+          231,
+          260,
+          239,
+          257,
+          322
+        ]
+      },
+      "total_samples": 2502,
+      "top_of_stack_counts_at_least_5": {
+        "rv2_tick": 1373,
+        "rivet_bench_eval": 705,
+        "rv2_array_get": 367,
+        "evaluate": 17,
+        "bench_return_float": 12,
+        "bench_cleanup": 11,
+        "bench_read_array": 6,
+        "rv2_array_len": 6,
+        "main": 5
+      },
+      "eval_native_instruction_lines": 249,
+      "eval_static_call_sites": {
+        "_rv2_tick": 85,
+        "_bench_read_array": 2,
+        "_rv2_array_len": 2,
+        "_rv2_array_get": 4,
+        "_rv_fail": 6,
+        "_bench_return_float": 1,
+        "_bench_cleanup": 1
+      }
+    },
+    "after": {
+      "original_llvm_sha256": "547f8bd1d3b59f3f4c46ed5666462a30be7d2ff166ce5e7c2627735cf6fe06b8",
+      "preloaded_llvm_sha256": "a08bd59626b27ce82a81a7508cf57fad5862c1305997feaeec0da8ab55a9a9c7",
+      "profiled_executable_sha256": "9e57af690dc8670a3a5254329b5fa4034e1200fc1daa41f5361b82f5e9fd2063",
+      "workload": "rivet-preloaded balanced_1000.txt 4000000 32 evaluate",
+      "sampling_workload_output": {
+        "implementation": "rivet",
+        "mode": "evaluate",
+        "cases": 16,
+        "rounds": 4000000,
+        "calls": 64000000,
+        "warmup_calls": 512,
+        "elapsed_ns": 6823928000,
+        "checksum": 4500268000000,
+        "expected_checksum_per_round": 1125067,
+        "ticks_per_case": [
+          259,
+          296,
+          287,
+          313,
+          316,
+          297,
+          67,
+          314,
+          231,
+          314,
+          289,
+          231,
+          260,
+          239,
+          257,
+          322
+        ]
+      },
+      "total_samples": 2505,
+      "top_of_stack_counts_at_least_5": {
+        "rivet_bench_eval": 1692,
+        "rv2_array_get": 655,
+        "evaluate": 49,
+        "rv2_array_len": 36,
+        "bench_read_array": 24,
+        "bench_return_float": 20,
+        "bench_cleanup": 15,
+        "main": 10
+      },
+      "eval_native_instruction_lines": 493,
+      "eval_static_call_sites": {
+        "_rv2_fuel_counter": 1,
+        "_bench_read_array": 2,
+        "_rv2_array_len": 2,
+        "_rv2_array_get": 4,
+        "_bench_return_float": 1,
+        "_bench_cleanup": 1,
+        "_rv_fail": 7
+      }
+    }
+  }
+}
