@@ -38,7 +38,17 @@ The binary HTTP example loaded as 64 bytes. Its port was changed to zero through
 
 ![Binary server native process and repeated responses](evidence/binary-http.png)
 
-Clean public checkout reproduction follows this integrated checkpoint.
+## Clean public checkout and completion
+
+A fresh public clone of **`73f86eda8ba2a5af3fdb1d33acdb783661d32bc3`** was created in a new temporary directory, with no copied target/node_modules/artifacts. Existing host toolchains/package download caches/Chromium were available; this was a clean source/build tree, not a new operating system. Direct byte regeneration reproduced all three tracked `.rvb` files exactly (`git diff --exit-code -- examples/` passed).
+
+Formatting, strict Clippy, all **59 Rust tests**, a fresh release build, native C baseline/size harnesses, UBSan, locked npm setup, Chromium installation verification, and all **12 browser scenarios** passed. Browser scenarios completed in 16.5 seconds and stopped their processes. [GitHub Actions](https://github.com/mrmcgrewx/rivet-lang/actions/runs/40223349738) independently passed the integrated checkpoint, including binary fixture reproducibility.
+
+The clean release compiler built both `.rvb` examples. `file` reported the source files as `data` and their outputs as `Mach-O 64-bit executable arm64`. `otool -L` listed only `/usr/lib/libSystem.B.dylib` for each executable. Copies of only those executables ran from another empty directory with environment cleared except `PATH=/nonexistent`: Hello emitted its exact newline-terminated output, the HTTP server returned three correct JSON responses and exited zero on SIGTERM. No workbench from that clean checkout was running. `git status --porcelain` returned empty after checks (only ignored build outputs remained).
+
+The binary-source correction is complete. Source contract: `372d143`; binary compiler/UI/examples and actual browser evidence: `73f86ed`; clean-public-reproduction evidence: the documentation commit introducing this section. Native compiler/runtime implementation is retained without an interpreter fallback on the public source path.
+
+The local checkout has ignored, ready-to-run `.rivet/binary-deliverables/hello` and `server`, compiled from `.rvb`, plus their inspection files. The workbench at port 7331 was left displaying Hello's binary bytes and native output; its program server is stopped. Binary source examples are tracked and can be authored without the optional Python fixture writer.
 
 ## Measurements
 
@@ -72,4 +82,4 @@ npm test
 ./target/release/rivet ui
 ```
 
-The native C support remains unchanged in this source correction. Prior strict warnings and UBSan passed; final clean-checkout verification reruns them. AddressSanitizer previously failed during host runtime initialization before main, and no ASan success is claimed. Only macOS arm64 is verified. User branches/loops/functions/request-dependent computation, distribution signing and broad performance studies remain outside this version.
+The native C support remains unchanged in this source correction. Strict warnings and UBSan passed again during clean-checkout verification. AddressSanitizer previously failed during host runtime initialization before main, and no ASan success is claimed. Only macOS arm64 is verified. User branches/loops/functions/request-dependent computation, distribution signing and broad performance studies remain outside this version.
