@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "name": "HTTP server",
+  "instructions": [
+    { "id": "message", "op": "text", "value": "hello world" },
+    { "id": "response", "op": "object", "fields": { "message": "message" } }
+  ],
+  "entry": {
+    "kind": "http",
+    "port": 8787,
+    "routes": [
+      { "method": "GET", "path": "/hello", "status": 200, "body": "response" }
+    ]
+  }
+}

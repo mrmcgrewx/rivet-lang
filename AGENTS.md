@@ -11,4 +11,4 @@ Read `docs/BRIEF.md`, `docs/ARCHITECTURE.md`, and `docs/STATE.md` before startin
 - Keep networking local by default. Prefer a small, precise design over premature optimization.
 - Do not report validation that was not actually performed. Require a clean build and actual browser UI verification before marking the milestones complete.
 
-Implementation has not started; module ownership and interfaces must be specified before delegation.
+Implementation ownership and public interfaces are specified in `docs/CONTRACT.md`. Read the current validation and review records before changing behavior.

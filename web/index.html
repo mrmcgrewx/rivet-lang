@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#ecf0ed" />
+    <title>Rivet — Language workbench</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#source">Skip to program editor</a>
+    <header class="app-header">
+      <a class="brand" href="/" aria-label="Rivet workbench home">
+        <svg
+          class="brand-mark"
+          viewBox="0 0 36 36"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M6 5h16a8 8 0 0 1 0 16H6V5Z"
+            stroke="currentColor"
+            stroke-width="5"
+          />
+          <path
+            d="m18 21 11 11M6 21v11"
+            stroke="currentColor"
+            stroke-width="5"
+          />
+          <circle cx="21" cy="13" r="2.5" fill="currentColor" />
+        </svg>
+        <span>rivet<span class="brand-dot">.</span></span>
+      </a>
+      <div class="header-divider"></div>
+      <span class="product-label">Language workbench <span>v0.1</span></span>
+      <div class="connection-pill" id="connection">
+        <span class="status-dot"></span
+        ><span id="connection-label">Connecting</span>
+      </div>
+    </header>
+
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Program library">
+        <div class="sidebar-topline">
+          <h2 class="eyebrow">Workspace</h2>
+          <span class="tiny-tag">LOCAL</span>
+        </div>
+        <p class="sidebar-caption">Small programs.<br />Visible execution.</p>
+        <div class="section-label">START WITH AN EXAMPLE</div>
+        <nav id="examples" class="example-list" aria-label="Example programs">
+          <p class="loading-copy">Loading examples…</p>
+        </nav>
+        <button id="new-program" class="sidebar-action" type="button">
+          <span aria-hidden="true">＋</span> New program
+        </button>
+        <div class="sidebar-rule"></div>
+        <div class="section-label">PROGRAM FILE</div>
+        <button id="open-program" class="sidebar-action" type="button">
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M2.5 5.5h5l2-2h4l2 3H18l-2 10H2.5z" />
+          </svg>
+          Open file <span class="action-arrow" aria-hidden="true">↗</span>
+        </button>
+        <button id="download-program" class="sidebar-action" type="button">
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4" />
+          </svg>
+          Download source <span class="action-arrow" aria-hidden="true">↓</span>
+        </button>
+        <input
+          id="file-input"
+          type="file"
+          accept=".json,.rivet,application/json"
+          hidden
+        />
+        <div class="language-note">
+          <span class="note-icon" aria-hidden="true">↳</span>
+          <p>
+            <strong>Rivet v1</strong>A typed dataflow language.<br />JSON source
+            → typed IR → execution.
+          </p>
+        </div>
+        <div class="sidebar-footer">
+          <span class="status-dot"></span> Runs on your machine
+        </div>
+      </aside>
+
+      <main>
+        <div class="workspace-heading">
+          <div>
+            <p class="eyebrow">THE EDIT · BUILD · RUN LOOP</p>
+            <h1>Program workspace</h1>
+          </div>
+          <div class="workflow" aria-label="Workflow">
+            <span><b>01</b> Edit</span><i aria-hidden="true">/</i
+            ><span><b>02</b> Build</span><i aria-hidden="true">/</i
+            ><span><b>03</b> Run</span>
+          </div>
+        </div>
+        <div id="notice" class="notice" role="status" hidden></div>
+
+        <section class="workbench" aria-label="Editor and execution results">
+          <div class="editor-panel">
+            <div class="panel-header editor-header">
+              <div class="panel-title">
+                <span class="file-icon" aria-hidden="true">{ }</span>
+                <h2 id="program-name">Untitled program</h2>
+              </div>
+              <span id="source-badge" class="badge neutral">Unbuilt</span>
+            </div>
+            <div class="editor-wrap">
+              <div id="line-numbers" class="line-numbers" aria-hidden="true">
+                1
+              </div>
+              <textarea
+                id="source"
+                aria-label="Program source"
+                spellcheck="false"
+                autocapitalize="off"
+                autocomplete="off"
+                autocorrect="off"
+                wrap="off"
+                aria-describedby="source-help"
+              ></textarea>
+            </div>
+            <div class="editor-footer">
+              <span id="source-help">JSON <span>·</span> Rivet v1</span
+              ><span id="source-stats">1 line · 0 B</span>
+            </div>
+          </div>
+          <div class="results-panel">
+            <div
+              class="result-tabs"
+              role="tablist"
+              aria-label="Execution views"
+            >
+              <button
+                type="button"
+                role="tab"
+                id="tab-console"
+                aria-controls="panel-console"
+                aria-selected="true"
+                tabindex="0"
+              >
+                Console
+              </button>
+              <button
+                type="button"
+                role="tab"
+                id="tab-diagnostics"
+                aria-controls="panel-diagnostics"
+                aria-selected="false"
+                tabindex="-1"
+              >
+                Diagnostics
+                <span id="diagnostic-count" class="tab-count">0</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                id="tab-ir"
+                aria-controls="panel-ir"
+                aria-selected="false"
+                tabindex="-1"
+              >
+                Compiled IR
+              </button>
+            </div>
+            <section
+              id="panel-console"
+              class="result-content"
+              role="tabpanel"
+              aria-labelledby="tab-console"
+              tabindex="0"
+            >
+              <div class="result-topline">
+                <span class="eyebrow">STANDARD OUTPUT</span
+                ><span id="run-timing" class="result-timing"></span>
+              </div>
+              <div id="console-empty" class="empty-state">
+                <span class="empty-symbol" aria-hidden="true">›_</span>
+                <h3>Ready when you are.</h3>
+                <p>
+                  Build your program, then run it.<br />Its output will appear
+                  here.
+                </p>
+              </div>
+              <pre
+                id="console-output"
+                class="console-output"
+                aria-label="Program output"
+                hidden
+              ></pre>
+              <div id="console-detail" class="result-detail" hidden></div>
+            </section>
+            <section
+              id="panel-diagnostics"
+              class="result-content"
+              role="tabpanel"
+              aria-labelledby="tab-diagnostics"
+              tabindex="0"
+              hidden
+            >
+              <div class="result-topline">
+                <span class="eyebrow">COMPILER & RUNTIME</span>
+              </div>
+              <div id="diagnostics-empty" class="empty-state">
+                <span class="empty-symbol" aria-hidden="true">✓</span>
+                <h3>No diagnostics.</h3>
+                <p>
+                  Build to validate your program’s<br />structure, references,
+                  and types.
+                </p>
+              </div>
+              <ul
+                id="diagnostics"
+                class="diagnostic-list"
+                aria-label="Diagnostics"
+              ></ul>
+            </section>
+            <section
+              id="panel-ir"
+              class="result-content"
+              role="tabpanel"
+              aria-labelledby="tab-ir"
+              tabindex="0"
+              hidden
+            >
+              <div class="result-topline">
+                <span class="eyebrow">TYPED INSTRUCTIONS</span
+                ><span id="instruction-count" class="result-timing"></span>
+              </div>
+              <div id="ir-empty" class="empty-state">
+                <span class="empty-symbol" aria-hidden="true">↳</span>
+                <h3>See what gets executed.</h3>
+                <p>
+                  A successful build lowers source<br />into typed register
+                  instructions.
+                </p>
+              </div>
+              <pre
+                id="ir-output"
+                class="ir-output"
+                aria-label="Compiled intermediate representation"
+                hidden
+              ></pre>
+            </section>
+          </div>
+          <div class="execution-toolbar">
+            <div class="build-state">
+              <span id="build-dot" class="status-dot"></span
+              ><span id="build-status" aria-live="polite"
+                >Build to validate this program</span
+              >
+            </div>
+            <div class="execution-actions">
+              <button id="build" class="button button-secondary" type="button">
+                <svg viewBox="0 0 18 18" aria-hidden="true">
+                  <path
+                    d="m9 2 6 3.5v7L9 16l-6-3.5v-7L9 2Zm-6 3.5L9 9l6-3.5M9 9v7"
+                  /></svg
+                ><span>Build</span><kbd id="build-shortcut">⌘ ↵</kbd></button
+              ><button
+                id="run"
+                class="button button-primary"
+                type="button"
+                disabled
+              >
+                <svg viewBox="0 0 18 18" aria-hidden="true">
+                  <path d="m5 3 10 6-10 6V3Z" /></svg
+                ><span id="run-label">Run program</span></button
+              ><button
+                id="stop"
+                class="button button-stop"
+                type="button"
+                disabled
+              >
+                <span class="stop-square" aria-hidden="true"></span>Stop
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="http-panel" aria-labelledby="http-heading">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg class="network-icon" viewBox="0 0 20 20" aria-hidden="true">
+                <path
+                  d="M7 3h6v5H7zM2 13h6v5H2zm10 0h6v5h-6zM10 8v3m-5 2v-2h10v2"
+                />
+              </svg>
+              <h2 id="http-heading">Local HTTP service</h2>
+            </div>
+            <span id="server-badge" class="badge neutral">Stopped</span>
+          </div>
+          <div class="http-content">
+            <div class="service-overview">
+              <div class="eyebrow">LISTENING ADDRESS</div>
+              <a
+                id="server-address"
+                class="server-address"
+                target="_blank"
+                rel="noopener noreferrer"
+                hidden
+              ></a>
+              <p id="server-placeholder" class="server-placeholder">
+                No server running
+              </p>
+              <p id="server-description" class="service-caption">
+                Open the HTTP server example, build it,<br />then start your
+                local service.
+              </p>
+              <div class="server-metrics">
+                <div>
+                  <span class="metric-label">REQUESTS</span
+                  ><strong id="request-count">—</strong>
+                </div>
+                <div>
+                  <span class="metric-label">BUILD</span
+                  ><strong id="server-build">—</strong>
+                </div>
+                <div>
+                  <span class="metric-label">SCOPE</span
+                  ><strong class="scope-value">Loopback only</strong>
+                </div>
+              </div>
+              <div
+                id="route-list"
+                class="route-list"
+                aria-label="Server routes"
+              ></div>
+            </div>
+            <div class="request-inspector">
+              <form id="request-form" class="request-form">
+                <label class="request-label" for="request-path"
+                  >Request inspector</label
+                >
+                <div class="request-controls">
+                  <span class="method-label">GET</span
+                  ><input
+                    id="request-path"
+                    name="path"
+                    type="text"
+                    value="/hello"
+                    aria-label="Request path"
+                    spellcheck="false"
+                    autocomplete="off"
+                  /><button
+                    id="send-request"
+                    class="button button-secondary"
+                    type="submit"
+                    disabled
+                  >
+                    Send request <span aria-hidden="true">↗</span>
+                  </button>
+                </div>
+              </form>
+              <div class="response-topline">
+                <span class="eyebrow">RESPONSE</span>
+                <div id="response-meta" aria-live="polite"></div>
+              </div>
+              <pre
+                id="response-body"
+                class="response-body"
+                aria-label="HTTP response body"
+              >
+Send a request to inspect the real HTTP response.</pre>
+            </div>
+          </div>
+        </section>
+        <footer class="workspace-footer">
+          <span
+            ><span class="footer-mark" aria-hidden="true">◆</span> Explicit
+            source. Observable execution.</span
+          ><span
+            >Rivet is experimental <span class="footer-separator">/</span> Built
+            locally, run locally.</span
+          >
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

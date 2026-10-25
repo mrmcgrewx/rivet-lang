@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "name": "Hello world",
+  "instructions": [
+    { "id": "greeting", "op": "text", "value": "Hello, " },
+    { "id": "audience", "op": "text", "value": "world!" },
+    { "id": "message", "op": "concat", "values": ["greeting", "audience"] }
+  ],
+  "entry": { "kind": "console", "value": "message" }
+}

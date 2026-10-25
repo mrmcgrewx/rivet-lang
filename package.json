@@ -1,0 +1,15 @@
+{
+  "name": "rivet-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser verification for the Rivet local language workbench",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test",
+    "test:ui:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1"
+  }
+}

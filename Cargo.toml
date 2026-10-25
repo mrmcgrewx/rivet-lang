@@ -1,0 +1,29 @@
+[package]
+name = "rivet-lang"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+description = "A small typed dataflow language and local engineering workbench"
+publish = false
+
+[lib]
+name = "rivet"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rivet"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.145"
+httparse = "=1.10.1"
+ctrlc = "=3.5.0"
+
+[profile.release]
+lto = "thin"
+strip = true
+
+[[bench]]
+name = "baseline"
+harness = false

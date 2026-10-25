@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "name": "Computed values",
+  "instructions": [
+    { "id": "base", "op": "int", "value": 40 },
+    { "id": "increment", "op": "int", "value": 2 },
+    { "id": "answer", "op": "add", "left": "base", "right": "increment" },
+    { "id": "answer_text", "op": "to_text", "value": "answer" },
+    { "id": "prefix", "op": "text", "value": "The answer is " },
+    { "id": "message", "op": "concat", "values": ["prefix", "answer_text"] },
+    { "id": "ready", "op": "bool", "value": true },
+    { "id": "details", "op": "object", "fields": { "answer": "answer", "ready": "ready" } },
+    { "id": "response", "op": "object", "fields": { "message": "message", "details": "details" } }
+  ],
+  "entry": {
+    "kind": "http",
+    "port": 0,
+    "routes": [
+      { "method": "GET", "path": "/computed", "status": 200, "body": "response" }
+    ]
+  }
+}

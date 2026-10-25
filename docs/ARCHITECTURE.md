@@ -23,3 +23,11 @@ The workbench service and program HTTP service should have separate lifecycles. 
 Pin the Rust toolchain and commit dependency lockfiles. Choose minimal maintained parsing/serialization/networking dependencies during interface design and document their purpose. No dependencies have been selected yet.
 
 For efficiency evaluation, first define a repeatable release-build benchmark on the documented target: compile a fixed program and execute its non-network computation repeatedly; separately measure local HTTP request latency. Record workload, iteration count, timing scope, and build mode. Initial measurements establish a baseline only, with no comparison to mature languages implied.
+
+## Implemented transport decision (2026-10-25)
+
+The initial `tiny_http` transport passed ordinary request/lifecycle tests but independent review reproduced blocking shutdown with an incomplete declared request body. Its unread-body cleanup could also allocate according to an oversized Content-Length. It was replaced before milestone acceptance with an owned Rust TCP listener/stream adapter and `httparse` 1.10.1 for header parsing.
+
+The adapter serves one request per connection, limits headers to 8 KiB/64 fields, bodies to 512 KiB, and request targets to 2048 bytes, rejects ambiguous framing and Transfer-Encoding, imposes a two-second total read deadline, polls cancellation during reads, and bounds socket writes to 250 ms per write. Each listener is owned and dropped by its serving thread; program Stop joins that thread before returning. No unread-body drain happens on drop. Regression tests cover incomplete POST/GET shutdown, immediate rebind, huge/duplicate Content-Length, and request expiry.
+
+Each listener handles requests sequentially. A slow client may delay another request for up to the bounded request deadline. This deliberately small HTTP subset is for local experiments; production concurrency, streaming/chunked requests, TLS, and Internet hosting are outside v1. Standard Content-Length JSON requests from the UI and curl are supported.

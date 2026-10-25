@@ -1,41 +1,31 @@
 # Project state
 
-State version: 2. Updated: 2026-10-25.
+State version: 3. Updated: 2026-10-25.
 
-## Milestones
+Public repository: https://github.com/mrmcgrewx/rivet-lang
 
-| Milestone | Status | Required evidence |
+| Milestone | Status | Evidence |
 | --- | --- | --- |
-| Bootstrap brief and public repository | Complete; initial checkpoint pushed | Initial commit pushed to a new public repository |
-| MVP 1: language, runtime, Hello world UI | Not started | Compiler/runtime tests, changed-output check, invalid-program check, browser verification |
-| MVP 2: program-defined local HTTP server | Not started | Repeated requests, edited response, stop/restart and clean shutdown, browser verification |
-| Final reproducibility and handoff | Not started | Clean checkout build/test, exact launch commands, final/milestone commit links |
+| Bootstrap | Complete | `efefdd1`, `eb4ef43` pushed before implementation; contracts `e4e6b01`, review ownership `72ca645` |
+| MVP 1: Hello world UI | Complete in this checkpoint | Typed IR, edited output, invalid-program diagnostics, automated and actual browser verification |
+| MVP 2: local HTTP server UI | Implemented, automated tests pass | Final coordinator interactive check pending |
+| Reproducibility and final handoff | In progress | Clean checkout, benchmark baseline, final documentation/push pending |
 
-## Bootstrap evidence
+## Implemented
 
-- The starting workspace was empty, with no Git repository or implementation.
-- Applicable global machine instructions were read before implementation; they are intentionally not copied here.
-- Development target inspected: macOS 26.5.2, arm64; Rust/Cargo 1.90.0; Node 22.7.0; Python 3.11 available.
-- Centralized GitHub App authentication and identity guard passed. The actor was confirmed as an App installation token with access to the intended owner's existing repositories.
-- Chosen candidate repository: `mrmcgrewx/rivet-lang`.
-- Repository creation via `POST /user/repos` returned HTTP 403 with `Rate Limit Exceeded`. The general REST quota still had over 4,990 requests remaining; the response supplied no retry delay. Both default and current API-version requests returned the same error. Do not infer that this means ordinary API quota exhaustion or a known missing permission.
-- A retry after more than two minutes of backoff returned the same error. App access needs external resolution, or the owner can create an empty public repository and make it accessible to the App.
-- The brief, initial architecture, contributor instructions, and state were committed locally before implementation. See Git history for the bootstrap commit; no checkpoint has been pushed.
-- No substantive implementation or tests have run. No remote repository is confirmed created.
+Rivet v1 is a typed single-assignment JSON representation compiled to private indexed register instructions and executed by a Rust interpreter. The binary embeds a plain HTML/CSS/JS workbench. Console and HTTP behavior come from program values. Workbench build artifacts and running servers are independent. Networking is loopback-only with bounded request parsing and cancellation-aware owned sockets.
 
-## Resolved access and current work
+The implementation contract, semantics, tests, and agent handoffs are committed project materials. The coordinator integrated all contributions. GitHub mutations use the established App helpers; credentials and private machine instructions are not stored here. Initial repository creation failed until the owner accepted updated App permissions, after which creation/push succeeded.
 
-- After the owner accepted updated App permissions, creation succeeded. Public repository: https://github.com/mrmcgrewx/rivet-lang.
-- Bootstrap commits `efefdd1` and `eb4ef43` were pushed and the remote main commit verified before substantive implementation.
-- The earlier access blocker is resolved. No personal credentials were used.
-- `docs/CONTRACT.md` fixes Rivet v1 semantics, language/backend/UI interfaces, ownership, and verification expectations before delegation.
+## Validation and remaining work
 
-## Next steps
+See `docs/VALIDATION.md` for commands and current evidence, and `docs/REVIEW-HANDOFF.md` for resolved review findings. Current integrated checks: 32 Rust tests, 8 Chromium UI tests, formatting, and strict Clippy. Actual Hello UI verification includes edited output and invalid programs.
 
-1. Implement language and UI within the ownership in `docs/CONTRACT.md`; coordinator implements runtime and workbench backend.
-2. Integrate and validate each MVP, recording and pushing its milestone commit.
-3. Verify a clean checkout and actual browser UI flows before final delivery.
+1. Complete actual HTTP UI start/request/repeat/stop/restart verification and capture evidence.
+2. Push milestone acceptance, clone the public repository into a clean temporary checkout, and run documented setup/build/test instructions there.
+3. Record a measured efficiency baseline without comparative performance claims.
+4. Finalize README/validation/state with milestone references and clean-checkout outcomes; push and verify final remote commit and CI.
 
-## Known limitations
+## Material limitations
 
-Implementation is beginning. Neither MVP has passed yet. The initial architecture is refined by `docs/CONTRACT.md`; executable semantics and limits must be documented and tested.
+Straight-line language: no branching, loops, functions, native code generation, persistent storage, or request-dependent computations. HTTP JSON is computed at server startup. Sequential HTTP/1.x subset: one request per connection, no chunked request bodies, TLS, or production hosting. Two-second total request read deadline; loopback only. Editor state is memory-only; download before reload. Browser verification targets Chromium/macOS arm64. Duplicate JSON object keys currently use last-value semantics; duplicate instruction IDs and route paths are rejected.
