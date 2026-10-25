@@ -1,5 +1,7 @@
 # Project brief
 
+**Binary-source correction in progress:** The canonical authored program must be an actual `.rvb` binary file. JSON-source completion is superseded. See `BINARY-PLAN.md` for the current encoding, interfaces, ownership, and acceptance. Native backend/runtime remain foundations.
+
 ## Objective
 
 Create an experimental custom programming language or machine-oriented program representation, its compiler/runtime, and a UI that a software engineer can use. Complete, test, and publish both MVPs to a new public GitHub repository under `mrmcgrewx`.

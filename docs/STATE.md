@@ -1,5 +1,7 @@
 # Project state
 
+**Binary-source correction in progress:** The canonical authored program must be an actual `.rvb` binary file. JSON-source completion is superseded. See `BINARY-PLAN.md` for the current encoding, interfaces, ownership, and acceptance. Native backend/runtime remain foundations.
+
 State version: 8. Updated: 2026-10-25.
 
 Public repository: https://github.com/mrmcgrewx/rivet-lang
