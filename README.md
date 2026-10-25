@@ -176,7 +176,7 @@ npm test
 
 The workbench itself needs no Node.js or frontend build. Binary tests cover malformed/truncated inputs, canonical roundtrips, types, control flow and definite assignment, decoded offsets, native/reference agreement, binary import/export/editing, and independent executables. Two Sum tests include the published examples, a seeded oracle corpus, duplicates/negative values, and 10,000 elements under both compiler profiles. See [Two Sum validation](docs/TWO-SUM-VALIDATION.md) and the earlier [RVB1 validation](docs/BINARY-VALIDATION.md).
 
-The native optimization objective remains executable file size. `size` uses Clang `-Oz` plus linker dead stripping; `baseline` uses identical generated LLVM and support at `-O0`. Run `python3 scripts/native_benchmark.py` after building the release compiler to compare the binary examples. [Measurements from the binary examples](docs/BINARY-BENCHMARK.json) show 5.4% smaller Hello, 0.65% smaller server, and a tie for computed output, with slower builds. These are small-workload native size results, not evidence of AI-generation or binary-decoding efficiency.
+The native optimization objective remains executable file size. `size` uses Clang `-Oz` plus linker dead stripping; `baseline` uses identical generated LLVM and support at `-O0`. Run `python3 scripts/native_benchmark.py` after building the release compiler to compare the RVB1 examples. [Earlier RVB1 measurements](docs/BINARY-BENCHMARK.json), before the RVB2 runtime extension, showed 5.4% smaller Hello, 0.65% smaller server, and a tie for computed output, with slower builds. These historical small-workload results do not establish current sizes or AI-generation/binary-decoding efficiency.
 
 ## Scope
 
