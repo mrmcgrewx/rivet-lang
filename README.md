@@ -2,7 +2,7 @@
 
 A small, experimental typed dataflow language with a Rust compiler/interpreter and a local browser workbench. Programs compile to indexed register instructions; their values determine both console output and HTTP responses.
 
-**Both MVPs are complete and verified** on macOS arm64: Hello world through the UI and a program-defined local JSON HTTP server. A clean public checkout passed all 32 Rust tests and eight Chromium UI tests. See [validation evidence](docs/VALIDATION.md) and [milestone commits](docs/STATE.md).
+**Native milestones reopened.** The existing work is an interpreter prototype. Native compilation and standalone executable artifacts are now required for completion; see [the revised design and acceptance contract](docs/NATIVE-PLAN.md).
 
 ## Run locally
 

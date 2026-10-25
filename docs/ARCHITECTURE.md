@@ -1,6 +1,6 @@
 # Architecture and decision record
 
-The bootstrap rationale below led to the implemented design specified in `CONTRACT.md` and `LANGUAGE.md`. Both MVPs are complete; validation and current state are recorded separately. Historical alternatives are retained here where they explain the implementation.
+The bootstrap rationale below led to the implemented design specified in `CONTRACT.md` and `LANGUAGE.md`. Interpreter-only MVP acceptance is superseded: native compilation is core to completion under `NATIVE-PLAN.md`. Historical alternatives are retained here where they explain the implementation.
 
 ## Target
 
@@ -10,7 +10,7 @@ Start on macOS arm64 with Rust 1.90.0 and a browser UI served by the local execu
 
 Use a small, versioned, typed program representation with an explicit validation stage and a distinct executable intermediate form. Rust owns parsing, validation/lowering, and execution. Define output and HTTP response operations as language/runtime capabilities. Include enough value composition to show computation and verify that program edits propagate through compilation to execution.
 
-The final v1 serialization is JSON, with seven typed operations and console/HTTP entries. The compiler resolves named operands to private typed register indices and emits an inspectable textual disassembly. Execution uses that validated IR. Artifacts are in memory; source is the versioned portable program format. A native backend was deferred because it would add toolchain complexity without helping establish either required demonstration.
+The final v1 serialization is JSON, with seven typed operations and console/HTTP entries. The compiler resolves named operands to private typed register indices and emits an inspectable textual disassembly. Execution uses that validated IR. Artifacts are in memory; source is the versioned portable program format. The original deferral of native code was a scope error relative to the experiment. The current native design emits LLVM IR and links standalone artifacts; the interpreter remains a reference implementation.
 
 ## Workbench
 

@@ -1,15 +1,15 @@
 # Project state
 
-State version: 4. Updated: 2026-10-25.
+State version: 5. Updated: 2026-10-25.
 
 Public repository: https://github.com/mrmcgrewx/rivet-lang
 
 | Milestone | Status | Evidence |
 | --- | --- | --- |
 | Bootstrap | Complete | `efefdd1`, `eb4ef43` pushed before implementation; contracts `e4e6b01`, review ownership `72ca645` |
-| MVP 1: Hello world UI | Complete — `2730be7` | Typed IR, edited output, invalid-program diagnostics, automated and actual browser verification |
-| MVP 2: local HTTP server UI | Complete — `ce9e2ec` | Actual start/repeated request/stop/edit/restart verified; screenshot captured |
-| Reproducibility and final handoff | Complete | Clean clone of `ce9e2ec` passed setup/build/tests/release smoke; baseline recorded |
+| MVP 1: standalone native Hello world | Reopened — interpreter prototype at `2730be7` | Typed IR, edited output, invalid-program diagnostics, automated and actual browser verification |
+| MVP 2: standalone native HTTP server | Reopened — interpreter prototype at `ce9e2ec` | Actual start/repeated request/stop/edit/restart verified; screenshot captured |
+| Native reproducibility and efficiency evidence | Pending | Clean clone of `ce9e2ec` passed setup/build/tests/release smoke; baseline recorded |
 
 ## Implemented
 
@@ -29,7 +29,7 @@ Milestone references:
 - HTTP UI acceptance: `ce9e2ec`.
 - Final completion/clean-reproduction evidence: the commit containing this state version (see `git log -1`).
 
-No required MVP work remains. Future extensions such as request-dependent values, branching/functions, persistence, richer editing, and broader platform support are optional new work and should start with a semantics/acceptance update. Current implementation ownership is historical guidance; review contracts and tests before extending it.
+The user clarified that native compilation is core to completion. Interpreter-only validation above is historical evidence, not acceptance of the corrected requirements. Required work is defined in `docs/NATIVE-PLAN.md`: direct LLVM lowering, standalone native support/runtime, persistent executable artifacts, OS-process execution in the workbench, reference/native differential checks, and measured native size/build-time comparison. Preserve the existing work while completing these milestones. Request-dependent computation remains optional subsequent language work.
 
 ## Material limitations
 

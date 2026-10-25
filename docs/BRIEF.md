@@ -6,6 +6,10 @@ Create an experimental custom programming language or machine-oriented program r
 
 The implementation language and execution target are engineering choices. Python, unsigned-integer processing, and x86-64 Linux are not requirements. A practical locally runnable target takes priority.
 
+## Required native-artifact correction
+
+Native compilation is part of completion. Both demonstrations must build standalone native executables for Apple Silicon; workbench Run launches those artifacts, and they remain usable after closing the workbench. Established backends/linkers and small native runtime helpers are permitted. Document representation rationale, generated-code/runtime boundary, and a concrete efficiency objective measured against a semantics-equivalent baseline. Preserve the validator/interpreter as a correctness reference. The detailed current contract is `NATIVE-PLAN.md`.
+
 ## Language and runtime
 
 - Use a genuine custom textual, structured, graph, or binary representation.
