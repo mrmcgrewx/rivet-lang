@@ -18,3 +18,5 @@ RVB2 computation ownership/interfaces are specified in `docs/TWO-SUM-PLAN.md`, w
 Read `docs/ADD-TWO-NUMBERS-PLAN.md` for the additive linked-list/copy/arithmetic contract and `docs/ROADMAP.md` for the user's language-capability and performance direction. Extend general capabilities, test them outside individual examples, and distinguish measured performance from aspirations.
 
 Read `docs/MEDIAN-PLAN.md` for the floating-point, median, speed-profile and comparison contract. Benchmark-only boundary substitutions must remain outside production code; preserve runtime checks and report timing/memory scopes precisely.
+
+Read `docs/NATIVE-OPTIMIZATION-PLAN.md` before optimizing native computation. Preserve exact source fuel/failure behavior and compare unchanged benchmark inputs and baselines; record new optimization interfaces before delegation.

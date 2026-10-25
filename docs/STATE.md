@@ -1,9 +1,11 @@
 # Project state
 
-State version: 19. Updated: 2026-10-25.
+State version: 20. Updated: 2026-10-25.
 Public repository: https://github.com/mrmcgrewx/rivet-lang
 
 ## Current objective and implementation
+
+Active work: close the native median performance gap while preserving all safety semantics. `NATIVE-OPTIMIZATION-PLAN.md` fixes the diagnostic evidence, first inline-fuel candidate, ownership and unchanged before/after benchmark contract before implementation. Prior median completion/results below remain historical evidence. No new speedup is claimed yet.
 
 Median of Two Sorted Arrays is complete at implementation `b72a8bd569f217ce9ce31358c261fe0e099b94f5`. `MEDIAN-PLAN.md` fixed additive Float encoding, logarithmic binary-partition source, speed profile, comparison methodology and ownership at `cccf624` before delegation. The 803-byte/81-operation source passes 275 oracle cases under three native profiles and 3135 exhaustive small reference cases. A fresh public clone passed all 96 Rust tests, C/UBSan, 18 browser scenarios and the benchmark correctness smoke; actual in-app runs and independent review passed. Public CI run `40233598578` succeeded. See `MEDIAN-VALIDATION.md` and `MEDIAN-REVIEW.md`.
 

@@ -1,0 +1,26 @@
+# Native safety-check optimization
+
+The user requests an explanation for C's approximately 16x advantage on median, an optimization that keeps Rivet's safety checks, and the same benchmarks rerun. Preserve the six binary source files, reference semantics, existing limits, diagnostics/failure order, compiler profiles and comparison programs/corpus/settings. The completed starting implementation is `b72a8bd`; final prior evidence is `1a155db`.
+
+## Evidence and first candidate
+
+The prior balanced 1000 + 1000 result was Rivet 558.91 ns/query versus C 34.19 ns. Inspection of the actual prior preloaded native function finds 85 static calls to `rv2_tick` after backend block duplication, four array-get call sites and two length calls. Runtime source shows that each tick calls a tiny check/increment function, making this a specific candidate rather than assuming that safety itself must be removed. Capture a bounded CPU sample and compare preserved-check variants; sampling is diagnostic, not the performance result.
+
+First make the exact fuel helper body visible to LLVM at each existing source call site. Emit an `available_externally`/`alwaysinline` definition of `rv2_tick`, retaining the existing real C implementation for ABI/fallback. The definition obtains the address of the same C counter via one new generic ABI function `uint64_t *rv2_fuel_counter(void)`, checks equality to 1000000 before increment, calls `rv_fail` with the existing exact diagnostic on exhaustion, and otherwise increments by exactly one. The getter returns the address of a stable static uint64_t and has no memory reads/writes or failure; its LLVM declaration may truthfully use `memory(none)`, `nounwind` and `willreturn`. Existing source call sites remain `call void @rv2_tick()` so the unchanged benchmark can count and preserve them. Optimizers may inline/combine redundant machine instructions only while preserving source fuel and failure semantics.
+
+Do not add fast-math, remove ticks, batch fuel across a potentially failing operation, increase a resource limit, remove array checks, or introduce a solver-specific path. No link-time optimization or benchmark changes in this first candidate; retain separate C solver/harness translation units. No manual runtime object layout is embedded in LLVM. Keep ABI 2 additive, with original symbols unchanged. Exact source, corpus and C/Python/harness/runner hashes must remain unchanged.
+
+Measure this candidate before making a second production optimization. A useful initial target is at least 2x faster median search without semantic regression; report the actual result, remaining C gap, memory and artifact/build tradeoffs. If another change is justified, first update this contract with its precise safety argument and ownership.
+
+## Committed ownership
+
+- Compiler owner: `src/language/compute_codegen.rs`, `tests/native_safety.rs`, `docs/NATIVE-OPTIMIZATION-COMPILER-HANDOFF.md`. Implement the inline fuel body, generic native/reference/ABI tests across all profiles, and exact limit/failure ordering. Do not change language/source encoding, reference semantics, C, benchmark, UI, shared docs or Git.
+- Runtime owner: `native/runtime.c`, `native/runtime.h`, `tests/native_runtime/compute.c`, `tests/native_runtime/run.py` only if needed, `docs/NATIVE-OPTIMIZATION-RUNTIME-HANDOFF.md`. Add the stable counter getter and focused C tests for identity, tick sharing and cleanup reset. Do not change existing tick/limit semantics or other helpers. No Rust/benchmark/UI/shared-doc/Git edits.
+- Independent reviewer: read all relevant implementation/benchmark artifacts; own `docs/NATIVE-OPTIMIZATION-REVIEW.md` only. Independently probe counter/failure boundaries and preserved integer/float/bounds/allocation checks, audit truthful optimizer attributes and unchanged benchmark method. No production/Git changes.
+- Coordinator: profiling, integration, controlled before/after benchmark runs and evidence, any agreed follow-up optimization, shared docs/state, Git, actual browser and clean public reproduction. Owners persist handoffs before ending; no concurrent Git mutation.
+
+## Validation and comparison
+
+Test zero/start, exact last allowed instruction, first disallowed instruction, termination at the limit, loops/branches, failures immediately before/after exhaustion, unused integer overflow/float errors, array/list bounds, runtime input and allocation limits under all profiles. The fallback C tick and inline body share the same counter and cleanup semantics. Preserve native/reference diagnostics and standalone artifact independence. Full strict Rust/C/UBSan, actual UI, clean committed checkout and public CI are required.
+
+Retain `MEDIAN-BENCHMARK.json` as historical evidence. Run the unchanged default benchmark (seed 20261025; 8 x 16 cases; 7 samples; 32 warmups; 50 ms target; 2M-call cap) against both a clean old checkout/compiler/runtime and a clean optimized one, with our tests/builds/profilers stopped. Keep raw reports separately, confirm identical corpus/runner/harness/baseline hashes, compare all families and C/Python controls, preserve peak-RSS and whole-process scopes. Report both prior historical and fresh control measurements where useful; do not subtract startup or harness controls. A shorter exploratory run may guide implementation but is not final evidence.
