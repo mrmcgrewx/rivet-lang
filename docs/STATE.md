@@ -1,12 +1,12 @@
 # Project state
 
-State version: 1. Updated: 2026-10-25.
+State version: 2. Updated: 2026-10-25.
 
 ## Milestones
 
 | Milestone | Status | Required evidence |
 | --- | --- | --- |
-| Bootstrap brief and public repository | In progress; remote creation blocked | Initial commit pushed to a new public repository |
+| Bootstrap brief and public repository | Complete; initial checkpoint pushed | Initial commit pushed to a new public repository |
 | MVP 1: language, runtime, Hello world UI | Not started | Compiler/runtime tests, changed-output check, invalid-program check, browser verification |
 | MVP 2: program-defined local HTTP server | Not started | Repeated requests, edited response, stop/restart and clean shutdown, browser verification |
 | Final reproducibility and handoff | Not started | Clean checkout build/test, exact launch commands, final/milestone commit links |
@@ -23,14 +23,19 @@ State version: 1. Updated: 2026-10-25.
 - The brief, initial architecture, contributor instructions, and state were committed locally before implementation. See Git history for the bootstrap commit; no checkpoint has been pushed.
 - No substantive implementation or tests have run. No remote repository is confirmed created.
 
+## Resolved access and current work
+
+- After the owner accepted updated App permissions, creation succeeded. Public repository: https://github.com/mrmcgrewx/rivet-lang.
+- Bootstrap commits `efefdd1` and `eb4ef43` were pushed and the remote main commit verified before substantive implementation.
+- The earlier access blocker is resolved. No personal credentials were used.
+- `docs/CONTRACT.md` fixes Rivet v1 semantics, language/backend/UI interfaces, ownership, and verification expectations before delegation.
+
 ## Next steps
 
-1. Resolve the remote-creation blocker: the owner can create an empty public `mrmcgrewx/rivet-lang` repository accessible to the App, or resolve App repository creation and authorize resuming the existing request. The backoff retry has already failed. Do not switch to personal credentials.
-2. Once the repository exists, connect `origin`, push the initial brief/state checkpoint, and verify public visibility and remote commit.
-3. Specify and commit the language semantics, module boundaries, workbench API, test strategy, and delegated file ownership. Then implement compiler/runtime and UI in parallel where useful.
-4. Integrate and validate each MVP, recording and pushing its milestone commit.
-5. Verify a clean checkout and actual browser UI flows before final delivery.
+1. Implement language and UI within the ownership in `docs/CONTRACT.md`; coordinator implements runtime and workbench backend.
+2. Integrate and validate each MVP, recording and pushing its milestone commit.
+3. Verify a clean checkout and actual browser UI flows before final delivery.
 
 ## Known limitations
 
-This checkout currently contains project documentation only. There is no compiler, runtime, UI, example program, build configuration, or benchmark yet. Setup and launch instructions cannot be validated before implementation.
+Implementation is beginning. Neither MVP has passed yet. The initial architecture is refined by `docs/CONTRACT.md`; executable semantics and limits must be documented and tested.
