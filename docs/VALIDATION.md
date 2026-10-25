@@ -26,7 +26,13 @@ Screenshot: [Hello world execution](evidence/hello-ui.png).
 
 ### MVP 2
 
-Automated UI checks pass; coordinator interactive verification is pending at this checkpoint.
+1. Loaded HTTP server, built it (build #3, two typed instructions), and clicked Start server. The UI showed `http://127.0.0.1:8787` and `/hello`.
+2. Sent `/hello` twice using the request inspector. Both responses were HTTP 200 with `application/json; charset=utf-8` and exact body `{"message":"hello world"}`; the displayed request count advanced to 2.
+3. Clicked Stop. The UI showed Stopped / Listener released; an independent TCP connect check confirmed port 8787 no longer accepted connections.
+4. Changed the program's text to `hello from Rivet`, rebuilt as #4, and restarted on the same port. The inspector returned `{"message":"hello from Rivet"}` with HTTP 200.
+5. Stopped again successfully. The workbench remains available independently of the program listener.
+
+Screenshot: [HTTP status, repeated requests, and JSON payload](evidence/http-ui.png).
 
 ## Clean checkout
 

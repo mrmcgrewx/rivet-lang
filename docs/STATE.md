@@ -7,8 +7,8 @@ Public repository: https://github.com/mrmcgrewx/rivet-lang
 | Milestone | Status | Evidence |
 | --- | --- | --- |
 | Bootstrap | Complete | `efefdd1`, `eb4ef43` pushed before implementation; contracts `e4e6b01`, review ownership `72ca645` |
-| MVP 1: Hello world UI | Complete in this checkpoint | Typed IR, edited output, invalid-program diagnostics, automated and actual browser verification |
-| MVP 2: local HTTP server UI | Implemented, automated tests pass | Final coordinator interactive check pending |
+| MVP 1: Hello world UI | Complete — `2730be7` | Typed IR, edited output, invalid-program diagnostics, automated and actual browser verification |
+| MVP 2: local HTTP server UI | Complete in this checkpoint | Actual start/repeated request/stop/edit/restart verified; screenshot captured |
 | Reproducibility and final handoff | In progress | Clean checkout, benchmark baseline, final documentation/push pending |
 
 ## Implemented
@@ -21,7 +21,7 @@ The implementation contract, semantics, tests, and agent handoffs are committed 
 
 See `docs/VALIDATION.md` for commands and current evidence, and `docs/REVIEW-HANDOFF.md` for resolved review findings. Current integrated checks: 32 Rust tests, 8 Chromium UI tests, formatting, and strict Clippy. Actual Hello UI verification includes edited output and invalid programs.
 
-1. Complete actual HTTP UI start/request/repeat/stop/restart verification and capture evidence.
+1. Both actual UI milestones are verified; see the complete procedure and screenshots in `docs/VALIDATION.md`.
 2. Push milestone acceptance, clone the public repository into a clean temporary checkout, and run documented setup/build/test instructions there.
 3. Record a measured efficiency baseline without comparative performance claims.
 4. Finalize README/validation/state with milestone references and clean-checkout outcomes; push and verify final remote commit and CI.
