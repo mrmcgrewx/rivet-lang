@@ -1,0 +1,144 @@
+{
+  "objective": "standalone executable file bytes, exact v1 semantics",
+  "baseline": "same generated LLVM and runtime, -O0, no requested linker stripping",
+  "candidate": "same generated LLVM and runtime, -Oz, linker dead-code stripping",
+  "host": {
+    "system": "Darwin",
+    "machine": "arm64",
+    "macos": "26.5.2",
+    "clang": "Apple clang version 17.0.0 (clang-1700.4.4.1)"
+  },
+  "samples_per_profile": 3,
+  "build_timing_scope": "CLI process start through artifact publication; Rust compiler executable already built",
+  "results": [
+    {
+      "example": "hello",
+      "profiles": {
+        "baseline": {
+          "samples": [
+            {
+              "bytes": 36744,
+              "build_ms": 193.564
+            },
+            {
+              "bytes": 36744,
+              "build_ms": 189.272
+            },
+            {
+              "bytes": 36744,
+              "build_ms": 205.929
+            }
+          ],
+          "median_bytes": 36744,
+          "median_build_ms": 193.564
+        },
+        "size": {
+          "samples": [
+            {
+              "bytes": 34760,
+              "build_ms": 260.72
+            },
+            {
+              "bytes": 34760,
+              "build_ms": 252.019
+            },
+            {
+              "bytes": 34760,
+              "build_ms": 243.993
+            }
+          ],
+          "median_bytes": 34760,
+          "median_build_ms": 252.019
+        }
+      },
+      "bytes_saved": 1984,
+      "size_reduction_percent": 5.4
+    },
+    {
+      "example": "server",
+      "profiles": {
+        "baseline": {
+          "samples": [
+            {
+              "bytes": 36744,
+              "build_ms": 189.629
+            },
+            {
+              "bytes": 36744,
+              "build_ms": 207.374
+            },
+            {
+              "bytes": 36744,
+              "build_ms": 183.037
+            }
+          ],
+          "median_bytes": 36744,
+          "median_build_ms": 189.629
+        },
+        "size": {
+          "samples": [
+            {
+              "bytes": 36504,
+              "build_ms": 253.209
+            },
+            {
+              "bytes": 36504,
+              "build_ms": 240.31
+            },
+            {
+              "bytes": 36504,
+              "build_ms": 254.965
+            }
+          ],
+          "median_bytes": 36504,
+          "median_build_ms": 253.209
+        }
+      },
+      "bytes_saved": 240,
+      "size_reduction_percent": 0.65
+    },
+    {
+      "example": "computed",
+      "profiles": {
+        "baseline": {
+          "samples": [
+            {
+              "bytes": 36744,
+              "build_ms": 198.304
+            },
+            {
+              "bytes": 36744,
+              "build_ms": 192.622
+            },
+            {
+              "bytes": 36744,
+              "build_ms": 211.007
+            }
+          ],
+          "median_bytes": 36744,
+          "median_build_ms": 198.304
+        },
+        "size": {
+          "samples": [
+            {
+              "bytes": 36744,
+              "build_ms": 250.354
+            },
+            {
+              "bytes": 36744,
+              "build_ms": 257.043
+            },
+            {
+              "bytes": 36744,
+              "build_ms": 248.86
+            }
+          ],
+          "median_bytes": 36744,
+          "median_build_ms": 250.354
+        }
+      },
+      "bytes_saved": 0,
+      "size_reduction_percent": 0.0
+    }
+  ]
+}

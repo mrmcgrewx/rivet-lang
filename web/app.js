@@ -18,6 +18,7 @@
     epoch: 0,
     statusPending: false,
     runBuildId: null,
+    lastRuntimeError: null,
   };
 
   async function api(path, body) {
@@ -51,6 +52,9 @@
       );
       error.diagnostics = result.diagnostics || [];
       error.status = response.status;
+      error.exitCode = result.exit_code;
+      error.stdout = result.stdout;
+      error.stderr = result.stderr;
       throw error;
     }
     return result;
@@ -69,6 +73,10 @@
     $("notice").textContent = message;
     $("notice").className = `notice${isError ? " error" : ""}`;
     $("notice").hidden = !message;
+  }
+
+  function exitStatus(code) {
+    return Number.isInteger(code) ? `Exit code ${code}` : "No exit code reported";
   }
 
   function programInfo() {
@@ -126,7 +134,7 @@
         ? "Executing…"
         : kind === "http"
           ? "Start server"
-          : "Run program";
+          : "Run executable";
     $("build").querySelector("span").textContent =
       state.busy === "build" ? "Building…" : "Build";
     $("source-badge").textContent = current
@@ -136,13 +144,13 @@
         : "Unbuilt";
     $("source-badge").className =
       `badge ${current ? "success" : state.build ? "warning" : "neutral"}`;
-    let status = "Build to validate this program";
+    let status = "Build to create a native executable";
     let tone = "";
     if (state.busy) {
       status = {
-        build: "Compiling and checking types…",
-        run: "Executing compiled program…",
-        stop: "Stopping and releasing the listener…",
+        build: "Checking types and compiling a native executable…",
+        run: "Launching the native executable…",
+        stop: "Stopping the native process and releasing its listener…",
         request: "Sending a local HTTP request…",
       }[state.busy];
     } else if (state.diagnostics.length) {
@@ -157,12 +165,43 @@
     }
     $("build-status").textContent = status;
     $("build-dot").className = `status-dot ${tone}`;
+    renderCode();
+    renderArtifact();
+  }
+
+  function renderCode() {
+    const view = $("code-view").value;
+    const labels = {
+      ir: "Compiled intermediate representation",
+      llvm_ir: "LLVM intermediate representation",
+      assembly: "Generated assembly",
+    };
+    $("code-view").disabled = !state.build;
     $("ir-empty").hidden = Boolean(state.build);
     $("ir-output").hidden = !state.build;
-    $("ir-output").textContent = state.build?.ir || "";
+    $("ir-output").textContent = state.build?.[view] || "";
+    $("ir-output").setAttribute("aria-label", labels[view]);
     $("instruction-count").textContent = state.build
-      ? `Build #${state.build.id}${current ? "" : " · previous source"}`
+      ? `Build #${state.build.id}${isCurrentBuild() ? "" : " · previous source"}`
       : "";
+  }
+
+  function renderArtifact() {
+    const artifact = state.build?.artifact;
+    $("artifact-details").hidden = !artifact;
+    $("download-executable").disabled = !artifact || Boolean(state.busy);
+    $("artifact-state").textContent = artifact
+      ? `Build #${state.build.id} · ${isCurrentBuild() ? "Current source" : "Previous source — rebuild to include edits"}`
+      : "Build to create a standalone executable.";
+    $("artifact-path").textContent = artifact?.path || "";
+    $("artifact-size").textContent = artifact
+      ? `${artifact.size_bytes.toLocaleString()} bytes`
+      : "—";
+    $("artifact-profile").textContent = artifact?.profile || "—";
+    $("artifact-target").textContent = artifact?.target || "—";
+    $("artifact-build-time").textContent = artifact
+      ? `${state.build.build_ms.toLocaleString()} ms`
+      : "—";
   }
 
   function renderServer() {
@@ -176,7 +215,7 @@
       $("server-address").href = server.address + (server.routes[0] || "/");
       const latest = state.build?.id === server.build_id && isCurrentBuild();
       $("server-description").textContent = latest
-        ? "Your compiled program is accepting local requests."
+        ? "Your native executable is accepting local requests."
         : `Build #${server.build_id} is still running. Stop it to run a new build.`;
     } else {
       $("server-address").removeAttribute("href");
@@ -185,6 +224,7 @@
     }
     $("request-count").textContent = server ? String(server.requests) : "—";
     $("server-build").textContent = server ? `#${server.build_id}` : "—";
+    $("server-pid").textContent = server ? String(server.pid) : "—";
     $("route-list").replaceChildren();
     for (const path of server?.routes || []) {
       const chip = document.createElement("span");
@@ -249,6 +289,15 @@
       const diagnostics = error.diagnostics?.length
         ? error.diagnostics
         : [{ path: action, message: error.message }];
+      if (action === "run" && error.exitCode !== undefined) {
+        $("console-empty").hidden = true;
+        $("console-output").hidden = !error.stdout;
+        $("console-output").textContent = error.stdout || "";
+        $("console-detail").hidden = false;
+        $("run-timing").textContent = "Exited";
+        $("console-detail").textContent =
+          `Build #${state.build.id} · ${exitStatus(error.exitCode)}${error.stderr ? `\n${error.stderr}` : ""}`;
+      }
       setDiagnostics(diagnostics, action);
       selectTab("diagnostics");
       showNotice(error.message, true);
@@ -266,9 +315,28 @@
     try {
       const result = await api("status");
       if (epoch !== state.epoch || state.busy) return;
+      if (
+        state.server &&
+        !result.server &&
+        state.server.build_id === state.runBuildId
+      ) {
+        $("run-timing").textContent = "Exited";
+        $("console-detail").textContent =
+          `Build #${state.server.build_id} · Native process ${state.server.pid} exited. Listener is no longer running.`;
+      }
       if (state.build?.id !== result.build?.id) state.builtSource = null;
       state.build = result.build;
       state.server = result.server;
+      const runtimeError = result.last_error || null;
+      if (runtimeError && runtimeError !== state.lastRuntimeError) {
+        const hadDiagnostics = state.diagnostics.length > 0;
+        setDiagnostics(
+          [...state.diagnostics, { path: "runtime", message: runtimeError }],
+          state.diagnosticAction || "run",
+        );
+        if (!hadDiagnostics) showNotice(runtimeError, true);
+      }
+      state.lastRuntimeError = runtimeError;
       renderServer();
     } catch {
       if (epoch === state.epoch) setConnected(false);
@@ -324,14 +392,14 @@
         $("console-output").textContent = result.stdout;
         $("run-timing").textContent = duration(result.elapsed_us);
         $("console-detail").textContent =
-          `Build #${build.id} · ${build.name} · Completed`;
+          `Build #${build.id} · ${build.name} · Completed · ${exitStatus(result.exit_code)}`;
       } else {
         state.server = result.server;
         $("console-output").hidden = true;
         $("console-output").textContent = "";
         $("run-timing").textContent = "Listening";
         $("console-detail").textContent =
-          `Build #${build.id} · ${build.name}\nHTTP service started at ${result.server.address}.\nUse the request inspector below to send a real request.`;
+          `Build #${build.id} · ${build.name} · Process ${result.server.pid}\nNative HTTP service started at ${result.server.address}.\nUse the request inspector below to send a real request.`;
         $("request-path").value = result.server.routes[0] || "/";
         resetResponse();
         renderServer();
@@ -348,7 +416,7 @@
       if (oldServer?.build_id === state.runBuildId) {
         $("run-timing").textContent = "Stopped";
         $("console-detail").textContent =
-          `Build #${oldServer.build_id} · HTTP service stopped. Listener released.`;
+          `Build #${oldServer.build_id} · Native process ${oldServer.pid} stopped. Listener released.`;
       }
       renderServer();
     }),
@@ -393,6 +461,17 @@
   });
   if (!/Mac|iPhone|iPad/.test(navigator.platform))
     $("build-shortcut").textContent = "Ctrl ↵";
+
+  $("code-view").addEventListener("change", renderCode);
+
+  $("download-executable").addEventListener("click", () => {
+    const artifact = state.build?.artifact;
+    if (!artifact) return;
+    const link = document.createElement("a");
+    link.href = artifact.download_url;
+    link.download = "rivet-program";
+    link.click();
+  });
 
   for (const tab of document.querySelectorAll('[role="tab"]')) {
     tab.addEventListener("click", () => selectTab(tab.id.slice(4)));

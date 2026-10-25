@@ -4,7 +4,9 @@ Rivet is a small typed, single-assignment dataflow language. JSON is its source
 serialization: each instruction defines one value, operands name earlier
 instructions, and an entry selects either console output or a local HTTP service.
 Rivet programs are parsed and type checked, lowered to an indexed register IR,
-then interpreted. They are never evaluated as JavaScript or other host code.
+then emitted as LLVM and compiled/linked to native code with Clang. A Rust
+interpreter executes the same validated IR as a correctness reference. Programs
+are never evaluated as JavaScript or interpolated host source.
 
 ## Source structure
 
@@ -63,7 +65,7 @@ external network operations in v1.
 { "kind": "console", "value": "message" }
 ```
 
-The referenced value must have type `Text`. The interpreter produces that exact
+The referenced value must have type `Text`. Execution produces that exact
 text followed by one newline. A text value already ending in a newline therefore
 produces an additional newline. The runtime emits the complete output only after
 successful execution.
@@ -120,7 +122,10 @@ The actual IR uses private Rust instruction enums, distinct `Text`, `Int`,
 `Bool`, and `Json` register wrappers, and typed entry references. This text is a
 deterministic inspection view, not executable source or a saved bytecode format.
 Object fields are lowered in sorted key order. Compilation does not perform
-constant folding, dead-code elimination, or native code generation.
+custom constant folding or dead-code elimination at this stage. Native lowering
+then emits LLVM with checked overflow branches and direct C helper calls; Clang
+optimizes and generates native machine code. Build saves LLVM and assembly for
+inspection. See `NATIVE-PLAN.md` for the native ABI and runtime boundary.
 
 Build diagnostics contain `path` and `message`, for example:
 
@@ -137,7 +142,9 @@ diagnostic. JSON syntax errors use path `$` and include a line and column.
 Invalid programs have no executable artifact.
 
 Execution errors are separate from compilation diagnostics. Addition overflow
-and computed-value size errors identify the instruction ID and register. A
+identifies the instruction ID and register. Native computed-value size errors
+identify the failed operation/limit; the reference interpreter also includes
+instruction context. A
 console-output size error identifies the entry output limit. Execution errors
 return no partial console output or service definition.
 

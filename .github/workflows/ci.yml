@@ -15,6 +15,10 @@ jobs:
           cargo clippy --locked --all-targets -- -D warnings
       - name: Compiler, runtime, and API tests
         run: cargo test --locked
+      - name: Native support and undefined-behavior checks
+        run: |
+          python3 tests/native_runtime/run.py
+          python3 tests/native_runtime/run.py --sanitize undefined
       - name: Install browser test dependencies
         run: |
           npm ci

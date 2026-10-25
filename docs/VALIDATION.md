@@ -1,5 +1,7 @@
 # Validation record
 
+**Historical interpreter-only evidence.** These results do not establish native milestone completion. See `NATIVE-VALIDATION.md` for current acceptance and reproduction.
+
 Target: macOS 26.5.2, Apple Silicon (arm64); Rust/Cargo 1.90.0; Node 22.7.0. Browser tests use locked Playwright 1.64.1 and Chromium 156.0.8078.4. Date: 2026-10-25.
 
 ## Integrated implementation checks

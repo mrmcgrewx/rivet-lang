@@ -79,7 +79,7 @@
           <span class="note-icon" aria-hidden="true">↳</span>
           <p>
             <strong>Rivet v1</strong>A typed dataflow language.<br />JSON source
-            → typed IR → execution.
+            → LLVM → native executable.
           </p>
         </div>
         <div class="sidebar-footer">
@@ -165,7 +165,7 @@
                 aria-selected="false"
                 tabindex="-1"
               >
-                Compiled IR
+                Compiled code
               </button>
             </div>
             <section
@@ -229,15 +229,24 @@
               hidden
             >
               <div class="result-topline">
-                <span class="eyebrow">TYPED INSTRUCTIONS</span
+                <label class="eyebrow" for="code-view">CODE VIEW</label
                 ><span id="instruction-count" class="result-timing"></span>
               </div>
+              <select
+                id="code-view"
+                class="code-view"
+                aria-label="Compiled code view"
+              >
+                <option value="ir">Typed IR</option>
+                <option value="llvm_ir">LLVM IR</option>
+                <option value="assembly">Assembly</option>
+              </select>
               <div id="ir-empty" class="empty-state">
                 <span class="empty-symbol" aria-hidden="true">↳</span>
-                <h3>See what gets executed.</h3>
+                <h3>Inspect the native build.</h3>
                 <p>
-                  A successful build lowers source<br />into typed register
-                  instructions.
+                  Build to inspect typed instructions,<br />LLVM IR, and
+                  generated assembly.
                 </p>
               </div>
               <pre
@@ -252,7 +261,7 @@
             <div class="build-state">
               <span id="build-dot" class="status-dot"></span
               ><span id="build-status" aria-live="polite"
-                >Build to validate this program</span
+                >Build to create a native executable</span
               >
             </div>
             <div class="execution-actions">
@@ -270,7 +279,7 @@
               >
                 <svg viewBox="0 0 18 18" aria-hidden="true">
                   <path d="m5 3 10 6-10 6V3Z" /></svg
-                ><span id="run-label">Run program</span></button
+                ><span id="run-label">Run executable</span></button
               ><button
                 id="stop"
                 class="button button-stop"
@@ -281,6 +290,57 @@
               </button>
             </div>
           </div>
+          <section class="artifact-panel" aria-labelledby="artifact-heading">
+            <div class="artifact-heading">
+              <div>
+                <h2 id="artifact-heading" class="eyebrow">NATIVE EXECUTABLE</h2>
+                <p id="artifact-state" class="artifact-state">
+                  Build to create a standalone executable.
+                </p>
+              </div>
+              <button
+                id="download-executable"
+                class="button button-secondary"
+                type="button"
+                disabled
+              >
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4" />
+                </svg>
+                Download executable
+              </button>
+            </div>
+            <div id="artifact-details" hidden>
+              <code
+                id="artifact-path"
+                class="artifact-path"
+                aria-label="Executable path"
+              ></code>
+              <dl class="artifact-metrics">
+                <div>
+                  <dt>SIZE</dt>
+                  <dd id="artifact-size">—</dd>
+                </div>
+                <div>
+                  <dt>PROFILE</dt>
+                  <dd id="artifact-profile">—</dd>
+                </div>
+                <div>
+                  <dt>TARGET</dt>
+                  <dd id="artifact-target">—</dd>
+                </div>
+                <div>
+                  <dt>NATIVE BUILD</dt>
+                  <dd id="artifact-build-time">—</dd>
+                </div>
+              </dl>
+              <p class="artifact-help">
+                The executable stays on disk after the workbench closes. A
+                downloaded copy may need <code>chmod +x rivet-program</code>
+                before running.
+              </p>
+            </div>
+          </section>
         </section>
 
         <section class="http-panel" aria-labelledby="http-heading">
@@ -320,6 +380,10 @@
                 <div>
                   <span class="metric-label">BUILD</span
                   ><strong id="server-build">—</strong>
+                </div>
+                <div>
+                  <span class="metric-label">PROCESS ID</span
+                  ><strong id="server-pid">—</strong>
                 </div>
                 <div>
                   <span class="metric-label">SCOPE</span

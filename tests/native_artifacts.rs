@@ -240,3 +240,75 @@ fn cli_build_is_native_and_backend_failure_is_reported_without_artifact() {
         b"Hello, world!\n"
     );
 }
+
+#[cfg(unix)]
+#[test]
+fn sigterm_stops_workbench_and_releases_native_server_port() {
+    struct ChildGuard(std::process::Child);
+    impl Drop for ChildGuard {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+    let temp = Temp::new();
+    let mut child = ChildGuard(
+        Command::new(env!("CARGO_BIN_EXE_rivet"))
+            .args(["ui", "--port", "0"])
+            .current_dir(&temp.0)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap(),
+    );
+    let stdout = child.0.stdout.take().unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    thread::spawn(move || {
+        let mut line = String::new();
+        BufReader::new(stdout).read_line(&mut line).unwrap();
+        let _ = tx.send(line);
+    });
+    let ready = rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    let address = ready
+        .trim()
+        .strip_prefix("Rivet workbench: http://")
+        .unwrap()
+        .parse()
+        .unwrap();
+    let app = App {
+        address,
+        stop: Arc::new(AtomicBool::new(false)),
+        worker: None,
+    };
+    let mut source: Value =
+        serde_json::from_str(include_str!("../examples/server.rivet.json")).unwrap();
+    source["entry"]["port"] = json!(0);
+    let build = app.build(&source.to_string());
+    let running = app.call("/api/run", json!({"build_id":build["id"]}));
+    let server: SocketAddr = running["server"]["address"]
+        .as_str()
+        .unwrap()
+        .trim_start_matches("http://")
+        .parse()
+        .unwrap();
+    assert_eq!(request_http(server, "/hello").unwrap().status, 200);
+    unsafe {
+        assert_eq!(libc::kill(child.0.id() as libc::pid_t, libc::SIGTERM), 0);
+    }
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    loop {
+        if let Some(status) = child.0.try_wait().unwrap() {
+            assert!(status.success(), "{status}");
+            break;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "workbench did not stop"
+        );
+        thread::sleep(Duration::from_millis(25));
+    }
+    assert!(TcpStream::connect(server).is_err());
+    assert!(TcpStream::connect(address).is_err());
+    let _rebound = std::net::TcpListener::bind(server).unwrap();
+    assert!(PathBuf::from(build["artifact"]["path"].as_str().unwrap()).exists());
+}
