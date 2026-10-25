@@ -78,7 +78,7 @@
         <div class="language-note">
           <span class="note-icon" aria-hidden="true">↳</span>
           <p>
-            <strong>RVB1 binary source</strong>Numeric instructions and typed registers.<br />Binary source → LLVM → native executable.
+            <strong>RVB binary source</strong>Numeric instructions and typed registers.<br />Binary source → LLVM → native executable.
           </p>
         </div>
         <div class="sidebar-footer">
@@ -134,7 +134,7 @@
               ></textarea>
             </div>
             <div class="editor-footer">
-              <span id="source-help">Decoded from RVB1 bytes · Read-only view</span
+              <span id="source-help">Decoded from binary bytes · Read-only view</span
               ><span id="source-stats">0 bytes</span>
             </div>
             <section id="binary-editors" class="binary-editors" aria-label="Binary value editor" hidden>
@@ -283,6 +283,16 @@
               ></pre>
             </section>
           </div>
+          <section id="runtime-input-panel" class="runtime-input-panel" aria-labelledby="runtime-input-heading" hidden>
+            <div class="runtime-input-heading">
+              <label id="runtime-input-heading" for="runtime-input" class="eyebrow">RUNTIME INPUT</label>
+              <span id="runtime-input-status" class="runtime-input-status" role="status">Passed to each run · no rebuild needed</span>
+            </div>
+            <p id="runtime-input-help" class="runtime-input-help">Enter integers separated by spaces or newlines. An array starts with its length, followed by its elements. These values are input to the executable; the program remains in the binary source above.</p>
+            <p id="two-sum-input-help" class="runtime-input-help" hidden>Two Sum reads the array, then the target. <code>4 2 7 11 15 9</code> means <code>[2, 7, 11, 15]</code> with target <code>9</code>. The result contains two zero-based indices.</p>
+            <textarea id="runtime-input" aria-label="Runtime input" aria-describedby="runtime-input-help two-sum-input-help" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" rows="3" placeholder="Array length, array elements, then any further integers the program reads"></textarea>
+            <div id="runtime-input-size" class="runtime-input-size">0 bytes · 256 KiB maximum</div>
+          </section>
           <div class="execution-toolbar">
             <div class="build-state">
               <span id="build-dot" class="status-dot"></span

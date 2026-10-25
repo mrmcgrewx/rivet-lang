@@ -14,6 +14,8 @@ Native compilation is part of completion. Both demonstrations must build standal
 
 ## Language and runtime
 
+The next requested exercise is [LeetCode Two Sum](https://leetcode.com/problems/two-sum/description/). `TWO-SUM-PLAN.md` defines the RVB2 computation extension: runtime input, typed mutable registers, arrays/maps and control flow, with the algorithm authored in actual binary source and compiled natively. Preserve the existing RVB1 demonstrations. The GUI must distinguish source bytes from runtime test data and reuse a build across inputs.
+
 - Author actual `.rvb` binary source files containing numeric opcodes, types, register references and payloads. JSON, textual assembly, and renamed/embedded text are not the canonical source.
 - Provide a GUI decoder and byte-preserving editor for human inspection; the compiler consumes binary source directly.
 - Define small, precise, extensible semantics sufficient to test program behavior and compiler correctness.

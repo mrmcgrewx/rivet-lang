@@ -1,4 +1,4 @@
-//! RVB1 binary source: bounded direct decoding into the typed IR.
+//! RVB binary source: version-dispatched, bounded direct decoding into typed IR.
 //!
 //! There is no intermediate JSON document or textual assembly input. See
 //! docs/BINARY-FORMAT.md for the canonical source encoding.
@@ -30,7 +30,7 @@ pub struct BinaryInstructionInfo {
     pub literal: Option<String>,
 }
 
-/// Validate RVB1 source bytes and construct typed IR directly.
+/// Validate RVB1/RVB2 source bytes and construct typed IR directly.
 /// Reports the first structural/type error with its absolute byte offset.
 /// Computed values are not evaluated during decoding.
 pub fn compile_binary(source: &[u8]) -> Result<CompiledProgram, Vec<Diagnostic>> {
@@ -51,21 +51,21 @@ pub fn inspect_binary(source: &[u8]) -> Result<BinaryInspection, Vec<Diagnostic>
     })
 }
 
-fn error(offset: usize, message: impl Into<String>) -> Diagnostic {
+pub(super) fn error(offset: usize, message: impl Into<String>) -> Diagnostic {
     Diagnostic {
         path: format!("byte 0x{offset:04x}"),
         message: message.into(),
     }
 }
 
-struct Reader<'a> {
+pub(super) struct Reader<'a> {
     bytes: &'a [u8],
     cursor: usize,
     base: usize,
 }
 
 impl<'a> Reader<'a> {
-    fn new(bytes: &'a [u8], base: usize) -> Self {
+    pub(super) fn new(bytes: &'a [u8], base: usize) -> Self {
         Self {
             bytes,
             cursor: 0,
@@ -73,15 +73,15 @@ impl<'a> Reader<'a> {
         }
     }
 
-    fn position(&self) -> usize {
+    pub(super) fn position(&self) -> usize {
         self.base + self.cursor
     }
 
-    fn remaining(&self) -> usize {
+    pub(super) fn remaining(&self) -> usize {
         self.bytes.len() - self.cursor
     }
 
-    fn take(&mut self, length: usize, context: &str) -> Result<&'a [u8], Diagnostic> {
+    pub(super) fn take(&mut self, length: usize, context: &str) -> Result<&'a [u8], Diagnostic> {
         if length > self.remaining() {
             return Err(error(
                 self.position(),
@@ -96,16 +96,16 @@ impl<'a> Reader<'a> {
         Ok(&self.bytes[start..self.cursor])
     }
 
-    fn u8(&mut self, context: &str) -> Result<u8, Diagnostic> {
+    pub(super) fn u8(&mut self, context: &str) -> Result<u8, Diagnostic> {
         Ok(self.take(1, context)?[0])
     }
 
-    fn u16(&mut self, context: &str) -> Result<u16, Diagnostic> {
+    pub(super) fn u16(&mut self, context: &str) -> Result<u16, Diagnostic> {
         let bytes = self.take(2, context)?;
         Ok(u16::from_le_bytes([bytes[0], bytes[1]]))
     }
 
-    fn u32(&mut self, context: &str) -> Result<u32, Diagnostic> {
+    pub(super) fn u32(&mut self, context: &str) -> Result<u32, Diagnostic> {
         let bytes = self.take(4, context)?;
         Ok(u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
     }
@@ -123,7 +123,7 @@ impl<'a> Reader<'a> {
             })
     }
 
-    fn finish(&self, context: &str) -> Result<(), Diagnostic> {
+    pub(super) fn finish(&self, context: &str) -> Result<(), Diagnostic> {
         if self.remaining() != 0 {
             Err(error(
                 self.position(),
@@ -372,9 +372,12 @@ fn decode_entry(
     Ok(Entry::Http { port, routes })
 }
 
-type Decoded = (CompiledProgram, Vec<BinaryInstructionInfo>, usize);
+pub(super) type Decoded = (CompiledProgram, Vec<BinaryInstructionInfo>, usize);
 
 fn decode(source: &[u8]) -> Result<Decoded, Diagnostic> {
+    if source.get(4..6) == Some(&[2, 0]) {
+        return super::compute::decode(source);
+    }
     if source.len() > MAX_SOURCE_BYTES {
         return Err(error(
             0,
@@ -456,9 +459,12 @@ fn write_u16(output: &mut Vec<u8>, value: usize) {
 }
 
 impl CompiledProgram {
-    /// Encode the validated typed program as canonical RVB1 source bytes.
+    /// Encode the validated typed program as canonical source bytes in its original version.
     /// Debug names are not part of the binary format and are intentionally omitted.
     pub fn encode_binary(&self) -> Vec<u8> {
+        if let Entry::Compute(program) = &self.entry {
+            return program.encode();
+        }
         let mut body = Vec::new();
         for instruction in &self.instructions {
             let mut payload = Vec::new();
@@ -506,6 +512,7 @@ impl CompiledProgram {
             body.extend_from_slice(&payload);
         }
         let entry_tag = match &self.entry {
+            Entry::Compute(_) => unreachable!("compute encoding dispatched above"),
             Entry::Console(register) => {
                 write_u16(&mut body, register.0);
                 1

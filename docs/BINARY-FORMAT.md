@@ -1,5 +1,7 @@
 # RVB1 binary source specification
 
+This specification remains valid for the original console/server examples. Computations with mutable registers, runtime input, arrays/maps and control flow use [RVB2](COMPUTE-FORMAT.md); version dispatch is explicit and RVB1 bytes are unchanged.
+
 RVB1 is Rivet's canonical, authored source format. A `.rvb` file contains numeric instruction records and register references. It is not a compiled executable, a JSON container, or an encoded textual program. The compiler reads these bytes directly into typed intermediate representation, then emits native code through LLVM/Clang. The same validated IR can be interpreted as a correctness reference.
 
 The source contains no textual opcode names, variable names, source filename, or debug symbol table. Human-readable code is a decoded inspection view supplied by the CLI and workbench. Text literals, JSON keys, and HTTP paths are stored as their ordinary byte values; they can be recognizable in a binary file. This is a binary language, not encryption or a claim that humans cannot reverse engineer it.

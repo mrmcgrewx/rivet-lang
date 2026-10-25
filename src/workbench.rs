@@ -22,6 +22,8 @@ use std::{
 };
 
 const MAX_BODY: u64 = 512 * 1024;
+// JSON can encode one input byte as six ASCII bytes (e.g. a whitespace escape).
+const MAX_RUN_BODY: u64 = 6 * native_process::MAX_INPUT_BYTES as u64 + 1024;
 
 #[derive(Clone, Debug, Serialize)]
 struct BuildInfo {
@@ -53,7 +55,7 @@ pub struct Workbench {
 
 impl Workbench {
     pub fn bind(port: u16) -> Result<Self, String> {
-        let listener = Server::http(("127.0.0.1", port))
+        let listener = Server::http_with_body_limit(("127.0.0.1", port), MAX_RUN_BODY as usize)
             .map_err(|e| format!("Cannot start workbench on 127.0.0.1:{port}: {e}"))?;
         let address = listener.address();
         Ok(Self {
@@ -167,6 +169,7 @@ impl Workbench {
                     "computed" => {
                         Some((include_bytes!("../examples/computed.rvb"), "computed.rvb"))
                     }
+                    "two-sum" => Some((include_bytes!("../examples/two-sum.rvb"), "two-sum.rvb")),
                     _ => None,
                 };
                 if let Some((bytes, filename)) = example {
@@ -214,7 +217,8 @@ impl Workbench {
                     json!({"examples":[
                         {"id":"hello","name":"Hello world","url":"/api/examples/hello","filename":"hello.rvb"},
                         {"id":"server","name":"HTTP server","url":"/api/examples/server","filename":"server.rvb"},
-                        {"id":"computed","name":"Computed values","url":"/api/examples/computed","filename":"computed.rvb"}
+                        {"id":"computed","name":"Computed values","url":"/api/examples/computed","filename":"computed.rvb"},
+                        {"id":"two-sum","name":"Two Sum","url":"/api/examples/two-sum","filename":"two-sum.rvb","input":"4 2 7 11 15 9\n"}
                     ]}),
                 ),
                 _ => send_json(request, 404, error("Not found")),
@@ -252,7 +256,13 @@ impl Workbench {
         if path == "/api/build" {
             self.build = None;
         }
-        let limit = if binary_source { 65536 } else { MAX_BODY };
+        let limit = if binary_source {
+            65536
+        } else if path == "/api/run" {
+            MAX_RUN_BODY
+        } else {
+            MAX_BODY
+        };
         if request.body_length().is_some_and(|n| n as u64 > limit) {
             send_json(
                 request,
@@ -330,6 +340,8 @@ impl Workbench {
                 #[serde(deny_unknown_fields)]
                 struct Input {
                     build_id: u64,
+                    #[serde(default)]
+                    input: String,
                 }
                 let input: Input = match serde_json::from_slice(body) {
                     Ok(v) => v,
@@ -347,21 +359,30 @@ impl Workbench {
                 if build.info.id != input.build_id {
                     return (409, error("Build is stale; build the current source again"));
                 }
+                if input.input.len() > native_process::MAX_INPUT_BYTES {
+                    return (413, error("Runtime input exceeds 262144 bytes"));
+                }
+                if !input.input.is_empty() && !matches!(build.artifact.entry, EntryInfo::Compute) {
+                    return (400, error("This program does not accept runtime input"));
+                }
                 self.last_error = None;
                 match &build.artifact.entry {
-                    EntryInfo::Console => match native_process::run_console(&build.artifact) {
-                        Ok(result) => {
-                            self.last_stdout = result.stdout.clone();
-                            (
-                                200,
-                                json!({"ok":true,"kind":"console","stdout":result.stdout,"stderr":result.stderr,"exit_code":result.exit_code,"elapsed_us":result.elapsed_us}),
-                            )
+                    EntryInfo::Console | EntryInfo::Compute => {
+                        match native_process::run_console_with_input(&build.artifact, &input.input)
+                        {
+                            Ok(result) => {
+                                self.last_stdout = result.stdout.clone();
+                                (
+                                    200,
+                                    json!({"ok":true,"kind":"console","stdout":result.stdout,"stderr":result.stderr,"exit_code":result.exit_code,"elapsed_us":result.elapsed_us}),
+                                )
+                            }
+                            Err(e) => (
+                                400,
+                                json!({"ok":false,"error":e.message,"stderr":e.stderr,"exit_code":e.exit_code,"diagnostics":[]}),
+                            ),
                         }
-                        Err(e) => (
-                            400,
-                            json!({"ok":false,"error":e.message,"stderr":e.stderr,"exit_code":e.exit_code,"diagnostics":[]}),
-                        ),
-                    },
+                    }
                     EntryInfo::Http { .. } => match NativeServer::start(&build.artifact) {
                         Ok(server) => {
                             let info = server.info(build.info.id);

@@ -33,6 +33,7 @@ pub(super) fn emit(program: &CompiledProgram) -> String {
         emitter.operands.push(operand);
     }
     match &program.entry {
+        Entry::Compute(_) => unreachable!("compute lowering has its own emitter"),
         Entry::Console(register) => {
             writeln!(
                 emitter.body,

@@ -6,6 +6,8 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Write};
 
 mod binary;
+mod compute;
+mod compute_codegen;
 mod native_codegen;
 
 pub use binary::{BinaryInspection, BinaryInstructionInfo, compile_binary, inspect_binary};
@@ -43,6 +45,7 @@ pub struct Route {
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum EntryInfo {
     Console,
+    Compute,
     Http { port: u16, routes: Vec<String> },
 }
 
@@ -160,6 +163,7 @@ struct CompiledRoute {
 #[derive(Clone, Debug)]
 enum Entry {
     Console(TextRegister),
+    Compute(compute::ComputeProgram),
     Http {
         port: u16,
         routes: Vec<CompiledRoute>,
@@ -715,17 +719,24 @@ impl CompiledProgram {
     }
 
     pub fn instruction_count(&self) -> usize {
-        self.instructions.len()
+        match &self.entry {
+            Entry::Compute(program) => program.instruction_count(),
+            _ => self.instructions.len(),
+        }
     }
 
     /// Lower the validated typed registers to LLVM IR for native compilation.
     pub fn emit_llvm(&self) -> String {
-        native_codegen::emit(self)
+        match &self.entry {
+            Entry::Compute(program) => compute_codegen::emit(program),
+            _ => native_codegen::emit(self),
+        }
     }
 
     pub fn entry_info(&self) -> EntryInfo {
         match &self.entry {
             Entry::Console(_) => EntryInfo::Console,
+            Entry::Compute(_) => EntryInfo::Compute,
             Entry::Http { port, routes } => EntryInfo::Http {
                 port: *port,
                 routes: routes.iter().map(|route| route.path.clone()).collect(),
@@ -735,6 +746,9 @@ impl CompiledProgram {
 
     /// A stable, human-readable dump of the indexed typed executable representation.
     pub fn disassemble(&self) -> String {
+        if let Entry::Compute(program) = &self.entry {
+            return program.disassemble();
+        }
         let mut output = format!("rivet-ir v1 {}\n", quoted(&self.name));
         for (index, instruction) in self.instructions.iter().enumerate() {
             let value_type = instruction.operation.result_register(index).value_type();
@@ -769,6 +783,7 @@ impl CompiledProgram {
             writeln!(output, "    ; {}", instruction.id).unwrap();
         }
         match &self.entry {
+            Entry::Compute(_) => unreachable!("compute disassembly dispatched above"),
             Entry::Console(register) => writeln!(output, "entry console %{}", register.0).unwrap(),
             Entry::Http { port, routes } => {
                 writeln!(output, "entry http 127.0.0.1:{port}").unwrap();
@@ -787,9 +802,20 @@ impl CompiledProgram {
         output
     }
 
-    /// Evaluate every instruction once, yielding console output or an HTTP service definition.
+    /// Evaluate the reference semantics, yielding console output or an HTTP service definition.
     /// Binding sockets and emitting output are runtime responsibilities, outside the language core.
     pub fn execute(&self) -> Result<Execution, String> {
+        self.execute_with_input("")
+    }
+
+    /// Execute the reference semantics with separate runtime stdin data.
+    pub fn execute_with_input(&self, input: &str) -> Result<Execution, String> {
+        if let Entry::Compute(program) = &self.entry {
+            return program.execute(input);
+        }
+        if !input.is_empty() {
+            return Err("runtime input is only supported by compute programs".into());
+        }
         let mut values = Vec::with_capacity(self.instructions.len());
         for (index, instruction) in self.instructions.iter().enumerate() {
             let value = evaluate(&instruction.operation, &values)
@@ -797,6 +823,7 @@ impl CompiledProgram {
             values.push(value);
         }
         match &self.entry {
+            Entry::Compute(_) => unreachable!("compute execution dispatched above"),
             Entry::Console(register) => {
                 let text = text_at(&values, *register)?;
                 checked_size(text.len() + 1, "console output including newline")?;

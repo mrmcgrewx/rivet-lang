@@ -103,7 +103,7 @@ fn binary_examples_and_inspection_are_exact_and_reject_text_source() {
     let app = Harness::new();
     let (status, examples) = app.call("GET", "/api/examples", json!({}));
     assert_eq!(status, 200);
-    assert_eq!(examples["examples"].as_array().unwrap().len(), 3);
+    assert_eq!(examples["examples"].as_array().unwrap().len(), 4);
     assert!(examples["examples"][0].get("source").is_none());
     let (status, bytes) = app.raw(
         "GET",
@@ -135,6 +135,72 @@ fn binary_examples_and_inspection_are_exact_and_reject_text_source() {
     assert_eq!(status, 400);
     assert!(!result["diagnostics"].as_array().unwrap().is_empty());
     assert_eq!(app.binary("/api/inspect", &vec![0; 65537]).0, 413);
+}
+#[test]
+fn compute_binary_build_reuses_artifact_across_runtime_inputs() {
+    let app = Harness::new();
+    let (_, metadata) = app.call("GET", "/api/examples", json!({}));
+    assert_eq!(metadata["examples"][3]["input"], "4 2 7 11 15 9\n");
+    let (status, source) = app.raw(
+        "GET",
+        "/api/examples/two-sum",
+        b"",
+        "application/octet-stream",
+        "",
+    );
+    assert_eq!(status, 200);
+    assert_eq!(source, include_bytes!("../examples/two-sum.rvb"));
+    let (_, inspection) = app.binary("/api/inspect", &source);
+    assert_eq!(inspection["inspection"]["entry"]["kind"], "compute");
+    let id = app.build(&source);
+    let artifact = app.call("GET", "/api/status", json!({})).1["build"]["artifact"].clone();
+    for (input, expected) in [
+        ("4 2 7 11 15 9\n", "[0,1]\n"),
+        ("3 3 2 4 6\n", "[1,2]\n"),
+        ("2 3 3 6\n", "[0,1]\n"),
+    ] {
+        let (status, result) = app.call("POST", "/api/run", json!({"build_id":id,"input":input}));
+        assert_eq!(status, 200, "{result}");
+        assert_eq!(result["stdout"], expected);
+        assert_eq!(result["exit_code"], 0);
+        let status = app.call("GET", "/api/status", json!({})).1;
+        assert_eq!(status["build"]["id"], id);
+        assert_eq!(status["build"]["artifact"], artifact);
+    }
+    let (status, error) = app.call(
+        "POST",
+        "/api/run",
+        json!({"build_id":id,"input":"2 3 nope 6"}),
+    );
+    assert_eq!(status, 400, "{error}");
+    assert_ne!(error["exit_code"], 0);
+    assert_eq!(app.call("POST", "/api/run", json!({"build_id":id})).0, 400);
+    assert_eq!(
+        app.call(
+            "POST",
+            "/api/run",
+            json!({"build_id":id,"input":"x".repeat(262145)})
+        )
+        .0,
+        413
+    );
+    assert_eq!(
+        app.call("POST", "/api/run", json!({"build_id":id,"input":"2 0 0 0"}))
+            .1["stdout"],
+        "[0,1]\n"
+    );
+    // Valid ASCII vertical-tab whitespace expands to six bytes in JSON.
+    let padded = "2 3 3 6".to_owned() + &"\u{000b}".repeat(262144 - 7);
+    assert_eq!(padded.len(), 262144);
+    let (status, result) = app.call("POST", "/api/run", json!({"build_id":id,"input":padded}));
+    assert_eq!(status, 200, "{result}");
+    assert_eq!(result["stdout"], "[0,1]\n");
+    let id = app.build(include_bytes!("../examples/hello.rvb"));
+    assert_eq!(
+        app.call("POST", "/api/run", json!({"build_id":id,"input":"1"}))
+            .0,
+        400
+    );
 }
 #[test]
 fn console_binary_edit_error_and_stale_build_paths() {

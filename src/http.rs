@@ -13,6 +13,7 @@ const REQUEST_DEADLINE: Duration = Duration::from_secs(2);
 
 pub struct Server {
     listener: TcpListener,
+    max_body: usize,
 }
 pub struct Request {
     stream: TcpStream,
@@ -55,9 +56,12 @@ impl Response {
 }
 impl Server {
     pub fn http(address: (&str, u16)) -> io::Result<Self> {
+        Self::http_with_body_limit(address, MAX_BODY)
+    }
+    pub fn http_with_body_limit(address: (&str, u16), max_body: usize) -> io::Result<Self> {
         let listener = TcpListener::bind(address)?;
         listener.set_nonblocking(true)?;
-        Ok(Self { listener })
+        Ok(Self { listener, max_body })
     }
     pub fn address(&self) -> SocketAddr {
         self.listener.local_addr().expect("bound TCP address")
@@ -77,7 +81,7 @@ impl Server {
                     stream.set_nonblocking(false)?;
                     stream.set_read_timeout(Some(Duration::from_millis(25)))?;
                     stream.set_write_timeout(Some(Duration::from_millis(250)))?;
-                    match read_request(&mut stream, stop) {
+                    match read_request(&mut stream, stop, self.max_body) {
                         Ok((method, url, headers, body)) => {
                             return Ok(Some(Request {
                                 stream,
@@ -137,7 +141,11 @@ impl Request {
 }
 type Parsed = (String, String, Vec<(String, String)>, Vec<u8>);
 type Failure = (u16, &'static str);
-fn read_request(stream: &mut TcpStream, stop: &AtomicBool) -> Result<Parsed, Failure> {
+fn read_request(
+    stream: &mut TcpStream,
+    stop: &AtomicBool,
+    max_body: usize,
+) -> Result<Parsed, Failure> {
     let deadline = Instant::now() + REQUEST_DEADLINE;
     let mut bytes = Vec::new();
     let header_end = loop {
@@ -205,9 +213,9 @@ fn read_request(stream: &mut TcpStream, stop: &AtomicBool) -> Result<Parsed, Fai
             }
             let length = value
                 .parse::<usize>()
-                .map_err(|_| (413, "HTTP body exceeds 512 KiB"))?;
-            if length > MAX_BODY {
-                return Err((413, "HTTP body exceeds 512 KiB"));
+                .map_err(|_| (413, "HTTP body exceeds configured limit"))?;
+            if length > max_body {
+                return Err((413, "HTTP body exceeds configured limit"));
             }
             content_length = Some(length);
         }

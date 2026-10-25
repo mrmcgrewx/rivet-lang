@@ -27,6 +27,7 @@
     statusPending: false,
     runBuildId: null,
     lastRuntimeError: null,
+    runInputSnapshot: null,
   };
 
   async function api(path, body) {
@@ -91,6 +92,13 @@
     return { name: state.filename, kind: state.inspection?.entry?.kind };
   }
 
+  function sourceFormat() {
+    const bytes = state.bytes;
+    if (!bytes || bytes.length < 6 || bytes[0] !== 0x52 || bytes[1] !== 0x56 || bytes[2] !== 0x42 || bytes[3] !== 0)
+      return "Binary";
+    return `RVB${new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint16(4, true)}`;
+  }
+
   function equalBytes(left, right) {
     return left && right && left.length === right.length &&
       left.every((value, index) => value === right[index]);
@@ -128,7 +136,7 @@
     source.setAttribute("aria-label", hex ? "Binary source bytes" : "Decoded program");
     $("source-help").textContent = hex
       ? "Hex editor · Each pair represents one source byte"
-      : "Decoded from RVB1 bytes · Read-only view";
+      : `Decoded from ${sourceFormat()} bytes · Read-only view`;
     renderEditor();
   }
 
@@ -142,7 +150,7 @@
     }).join("\n");
     $("line-numbers").scrollTop = source.scrollTop;
     $("source-stats").textContent = state.bytes
-      ? `${state.bytes.length.toLocaleString()} bytes · RVB1`
+      ? `${state.bytes.length.toLocaleString()} bytes · ${sourceFormat()}`
       : "Incomplete hex bytes";
     $("program-name").textContent = state.filename;
     for (const button of $("examples").querySelectorAll("button"))
@@ -161,10 +169,10 @@
 
   function renderValueEditors() {
     const inspection = state.inspection;
-    $("binary-editors").hidden = !inspection;
     const selected = state.literalSelection;
     $("literal-select").replaceChildren();
-    const literals = inspection?.instructions.filter(item => item.literal !== null) || [];
+    const literals = inspection?.instructions.filter(item => typeof item.literal === "string") || [];
+    $("binary-editors").hidden = !literals.length && inspection?.entry.kind !== "http";
     for (const instruction of literals) {
       const option = document.createElement("option");
       option.value = String(instruction.index);
@@ -203,12 +211,16 @@
     }
   }
 
-  async function setSourceBytes(bytes, filename = state.filename, selectedExample = null) {
+  async function setSourceBytes(bytes, filename = state.filename, selectedExample = null, input) {
     clearTimeout(state.inspectTimer);
     state.bytes = bytes.slice();
     state.filename = filename;
     state.hexText = formatHex(bytes);
     state.selectedExample = selectedExample;
+    if (input !== undefined) {
+      $("runtime-input").value = input;
+      state.runInputSnapshot = null;
+    }
     state.inspection = null;
     state.inspectionPending = true;
     const revision = ++state.revision;
@@ -228,7 +240,7 @@
       const response = await fetch(example.url, { cache: "no-store" });
       if (!response.ok) throw new Error(`Cannot load binary example (${response.status}).`);
       const bytes = new Uint8Array(await response.arrayBuffer());
-      await setSourceBytes(bytes, example.filename, example.id);
+      await setSourceBytes(bytes, example.filename, example.id, example.input || "");
     });
   }
 
@@ -236,6 +248,21 @@
     const current = isCurrentBuild();
     const busy = Boolean(state.busy);
     const kind = programInfo().kind;
+    const inputBytes = encoder.encode($("runtime-input").value).length;
+    const inputTooLarge = kind === "compute" && inputBytes > 262144;
+    $("runtime-input-panel").hidden = kind !== "compute";
+    $("runtime-input").disabled = busy;
+    $("runtime-input").setAttribute("aria-invalid", String(inputTooLarge));
+    $("two-sum-input-help").hidden = state.selectedExample !== "two-sum";
+    $("runtime-input").setAttribute("aria-describedby", state.selectedExample === "two-sum"
+      ? "runtime-input-help two-sum-input-help" : "runtime-input-help");
+    $("runtime-input-size").textContent = `${inputBytes.toLocaleString()} bytes · 256 KiB maximum`;
+    $("runtime-input-size").classList.toggle("too-large", inputTooLarge);
+    $("runtime-input-status").textContent = inputTooLarge
+      ? "Input is too large · shorten it before running"
+      : state.runInputSnapshot !== null && state.runBuildId === state.build?.id && $("runtime-input").value !== state.runInputSnapshot
+        ? "Input changed · run the same executable again"
+        : "Passed to each run · no rebuild needed";
     $("build").disabled = busy || !state.loaded || !state.bytes || state.inspectionPending;
     source.readOnly = busy || $("source-view").value !== "hex";
     $("download-program").disabled = busy || !state.bytes;
@@ -247,7 +274,7 @@
     $("inspection-status").textContent = state.inspectionPending ? "Decoding…" : state.inspection
       ? `${state.inspection.instructions.length} instructions · Valid binary`
       : state.bytes ? "Invalid binary" : "Incomplete bytes";
-    $("run").disabled = busy || !current || Boolean(state.server);
+    $("run").disabled = busy || !current || state.inspectionPending || !state.inspection || Boolean(state.server) || inputTooLarge;
     $("stop").disabled = busy || !state.server;
     $("send-request").disabled = busy || !state.server;
     $("request-path").disabled = busy;
@@ -495,7 +522,12 @@
       if (!isCurrentBuild())
         throw new Error("Build the current source before running.");
       const build = state.build;
-      const result = await api("run", { build_id: build.id });
+      const request = { build_id: build.id };
+      if (programInfo().kind === "compute") {
+        request.input = $("runtime-input").value;
+        state.runInputSnapshot = request.input;
+      }
+      const result = await api("run", request);
       setDiagnostics([]);
       state.runBuildId = build.id;
       $("console-empty").hidden = true;
@@ -582,6 +614,7 @@
     renderServer();
   });
   $("source-view").addEventListener("change", renderSource);
+  $("runtime-input").addEventListener("input", renderControls);
   $("literal-select").addEventListener("change", () => {
     state.literalSelection = $("literal-select").value;
     renderLiteralSelection();
@@ -669,7 +702,7 @@
   $("new-program").addEventListener("click", () => perform("open", async () => {
     // RVB1 header, one empty Text record, console entry referencing register 0.
     const bytes = Uint8Array.of(0x52, 0x56, 0x42, 0, 1, 0, 0, 0, 1, 0, 1, 0, 6, 0, 0, 0, 1, 1, 0, 0, 0, 0);
-    await setSourceBytes(bytes, "untitled.rvb");
+    await setSourceBytes(bytes, "untitled.rvb", null, "");
   }));
 
   $("open-program").addEventListener("click", () => $("file-input").click());
@@ -678,7 +711,7 @@
     if (!file) return;
     await perform("open", async () => {
       if (file.size > 65536) throw localError("This file exceeds the 64 KiB binary source limit.");
-      await setSourceBytes(new Uint8Array(await file.arrayBuffer()), file.name);
+      await setSourceBytes(new Uint8Array(await file.arrayBuffer()), file.name, null, "");
       if (state.inspection) showNotice(`Opened ${file.name} as binary source. Build to create its executable.`);
     });
     $("file-input").value = "";

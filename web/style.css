@@ -1613,6 +1613,61 @@ kbd {
   white-space: normal;
   line-height: 1.5;
 }
+.runtime-input-panel {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: 18px 20px;
+  border-top: 1px solid var(--line);
+  background: #f8f9f2;
+}
+.runtime-input-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.runtime-input-status,
+.runtime-input-size {
+  color: #5c7150;
+  font: 10px/1.6 var(--mono);
+}
+.runtime-input-help {
+  margin: 9px 0;
+  color: #536a49;
+  font-size: 12px;
+  line-height: 1.65;
+  max-width: 84em;
+}
+.runtime-input-help code {
+  font-family: var(--mono);
+  white-space: normal;
+}
+#runtime-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 66px;
+  max-height: 240px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid #cbd6c3;
+  border-radius: 4px;
+  background: #fffefa;
+  color: #365333;
+  font: 13px/1.7 var(--mono);
+}
+#runtime-input:focus-visible {
+  outline: 2px solid #7b9a4d;
+  outline-offset: 1px;
+}
+.runtime-input-size {
+  margin-top: 5px;
+  text-align: right;
+}
+.runtime-input-size.too-large {
+  color: #9b4a35;
+}
 @media (max-width: 680px) {
   .source-view-toolbar #inspection-status {
     margin-left: 0;
@@ -1626,5 +1681,8 @@ kbd {
   }
   .source-view-toolbar {
     padding: 12px 13px;
+  }
+  .runtime-input-panel {
+    padding: 15px 13px;
   }
 }

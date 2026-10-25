@@ -46,7 +46,7 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.is_empty() || args == ["--help"] || args == ["help"] {
         println!(
-            "Rivet — binary source native compiler (RVB1)\n\n  rivet build FILE -o PATH [--profile size|baseline]\n                            Build a standalone executable and inspectable LLVM/assembly\n  rivet run FILE            Build and launch native executable\n  rivet interpret FILE      Run the reference interpreter\n  rivet inspect FILE        Decode binary source to a readable view\n  rivet check FILE          Validate and print typed register IR\n  rivet ui [--port PORT]    Start local workbench (default 7331)\n\nSource files are binary RVB1 (.rvb). JSON/text source is not accepted.\nBuild requires Clang/Xcode command-line tools. Executables need only system libraries.\nAll listeners bind 127.0.0.1; port 0 chooses a free port. Ctrl-C stops managed servers."
+            "Rivet — binary source native compiler (RVB1/RVB2)\n\n  rivet build FILE -o PATH [--profile size|baseline]\n                            Build a standalone executable and inspectable LLVM/assembly\n  rivet run FILE            Build and launch native executable\n  rivet interpret FILE      Run the reference interpreter\n  rivet inspect FILE        Decode binary source to a readable view\n  rivet check FILE          Validate and print typed register IR\n  rivet ui [--port PORT]    Start local workbench (default 7331)\n\nSource files are binary RVB (.rvb). JSON/text source is not accepted.\nCompute programs read runtime data from stdin (finish with EOF).\nTwo Sum input: count, array elements, target; e.g. '4 2 7 11 15 9'.\nBuild requires Clang/Xcode command-line tools. Executables need only system libraries.\nAll listeners bind 127.0.0.1; port 0 chooses a free port. Ctrl-C stops managed servers."
         );
         return Ok(());
     }
@@ -109,8 +109,18 @@ fn run() -> Result<(), String> {
                 println!("{}", program.disassemble());
                 return Ok(());
             }
+            let mut input = String::new();
+            if matches!(program.entry_info(), language::EntryInfo::Compute) {
+                std::io::stdin()
+                    .take(native_process::MAX_INPUT_BYTES as u64 + 1)
+                    .read_to_string(&mut input)
+                    .map_err(|e| format!("Cannot read runtime input: {e}"))?;
+                if input.len() > native_process::MAX_INPUT_BYTES {
+                    return Err("Runtime input exceeds 262144 bytes".into());
+                }
+            }
             if args[0] == "interpret" {
-                return match program.execute()? {
+                return match program.execute_with_input(&input)? {
                     Execution::Console { stdout } => {
                         print!("{stdout}");
                         Ok(())
@@ -129,8 +139,9 @@ fn run() -> Result<(), String> {
             let artifact =
                 native::build_native(&program, &directory.join("program"), BuildProfile::Size)?;
             match artifact.entry {
-                language::EntryInfo::Console => {
-                    let result = native_process::run_console(&artifact).map_err(|e| e.message)?;
+                language::EntryInfo::Console | language::EntryInfo::Compute => {
+                    let result = native_process::run_console_with_input(&artifact, &input)
+                        .map_err(|e| e.message)?;
                     print!("{}", result.stdout);
                     eprint!("{}", result.stderr);
                     Ok(())

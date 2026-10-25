@@ -250,6 +250,85 @@ test("computed binary example supports integer and boolean byte edits", async ({
   expect(JSON.parse(await page.getByLabel("HTTP response body").textContent())).toEqual({ message: "The answer is 43", details: { answer: 43, ready: false } });
 });
 
+test("Two Sum keeps binary source separate from runtime data and reuses one native build", async ({ page }) => {
+  const builds = [];
+  page.on("request", request => {
+    if (request.url().endsWith("/api/build")) builds.push(request);
+  });
+  await expect(page.getByRole("textbox", { name: "Runtime input", exact: true })).toBeHidden();
+  await page.getByRole("button", { name: "Two Sum", exact: true }).click();
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
+  await expect(page.locator("#source-stats")).toContainText("RVB2");
+  await expect(page.locator("#source-help")).toContainText("RVB2");
+  const input = page.getByRole("textbox", { name: "Runtime input", exact: true });
+  await expect(input).toHaveValue("4 2 7 11 15 9\n");
+  await expect(page.locator("#two-sum-input-help")).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Decoded program", exact: true })).toHaveAttribute("readonly", "");
+  const bytes = await fixture("two-sum");
+  expect((await downloadBytes(page, "Download binary source")).bytes).toEqual(bytes);
+  const compiled = await build(page);
+  for (const [data, answer] of [["4 2 7 11 15 9\n", "[0,1]\n"], ["3 3 2 4 6\n", "[1,2]\n"], ["2 3 3 6\n", "[0,1]\n"], ["2 9007199254740993 1 9007199254740994\n", "[0,1]\n"]]) {
+    await input.fill(data);
+    await expect(page.locator("#source-badge")).toHaveText("Built");
+    await expect(page.getByLabel("Executable path")).toHaveText(compiled.artifact.path);
+    const pending = page.waitForRequest(request => request.url().endsWith("/api/run"));
+    await page.getByRole("button", { name: "Run executable", exact: true }).click();
+    expect((await pending).postDataJSON()).toEqual({ build_id: compiled.id, input: data });
+    await expect(page.getByLabel("Program output")).toHaveText(answer);
+    await expect(page.locator("#console-detail")).toContainText(`Build #${compiled.id}`);
+    await expect(page.locator("#console-detail")).toContainText("Exit code 0");
+    await expect(input).toBeEnabled();
+  }
+  await input.fill("3 -3 4 3 0\n");
+  await expect(page.locator("#runtime-input-status")).toContainText("Input changed");
+  expect(builds).toHaveLength(1);
+  expect((await downloadBytes(page, "Download binary source")).bytes).toEqual(bytes);
+  await page.getByRole("combobox", { name: "Source view", exact: true }).selectOption("hex");
+  const hex = page.getByRole("textbox", { name: "Binary source bytes", exact: true });
+  expect(Buffer.from((await hex.inputValue()).replace(/\s/g, ""), "hex")).toEqual(bytes);
+  await page.getByRole("button", { name: "Hello world", exact: true }).click();
+  await expect(input).toBeHidden();
+  await build(page);
+  const pending = page.waitForRequest(request => request.url().endsWith("/api/run"));
+  await page.getByRole("button", { name: "Run executable", exact: true }).click();
+  expect((await pending).postDataJSON()).not.toHaveProperty("input");
+  await expect(page.getByLabel("Program output")).toHaveText("Hello, world!\n");
+});
+
+test("compute runtime input errors recover without rebuilding or modifying binary source", async ({ page }) => {
+  await page.getByRole("button", { name: "Two Sum", exact: true }).click();
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
+  const compiled = await build(page);
+  const input = page.getByRole("textbox", { name: "Runtime input", exact: true });
+  await input.fill("2 3 invalid 6");
+  await page.getByRole("button", { name: "Run executable", exact: true }).click();
+  await expect(page.locator("#diagnostics")).toContainText(/integer|input|decimal/i);
+  await expect(page.locator("#source-badge")).toHaveText("Built");
+  await expect(input).toBeEnabled();
+  await input.fill("2 3 3 6\n");
+  await page.getByRole("button", { name: "Run executable", exact: true }).click();
+  await expect(page.getByLabel("Program output")).toHaveText("[0,1]\n");
+  await expect(page.locator("#diagnostics li")).toHaveCount(0);
+  await expect(page.getByLabel("Executable path")).toHaveText(compiled.artifact.path);
+  // Count actual UTF-8 bytes, including data that is not valid numeric input.
+  await input.fill("é".repeat(131073));
+  await expect(input).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#runtime-input-status")).toContainText("too large");
+  await expect(page.getByRole("button", { name: "Run executable", exact: true })).toBeDisabled();
+  await input.fill("2 3 3 6\n");
+  await expect(input).toHaveAttribute("aria-invalid", "false");
+  await expect(page.getByRole("button", { name: "Run executable", exact: true })).toBeEnabled();
+  const bytes = await fixture("two-sum");
+  expect((await downloadBytes(page, "Download binary source")).bytes).toEqual(bytes);
+  await openBytes(page, bytes, "imported-solution.rvb");
+  await expect(input).toHaveValue("");
+  await expect(input).toBeVisible();
+  expect((await downloadBytes(page, "Download binary source")).bytes).toEqual(bytes);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(input).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+});
+
 test("literal editor preserves exact i64 values in bytes and HTTP output", async ({ page }) => {
   await openBytes(page, intServer(0), "integer.rvb");
   await editLiteral(page, 0, "9223372036854775807");

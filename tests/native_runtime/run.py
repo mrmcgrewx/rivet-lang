@@ -48,6 +48,62 @@ def values_checks(executable):
     assert result.returncode == 1 and b"cannot write console output" in result.stderr
 
 
+def compute_checks(executable):
+    subprocess.run([executable], check=True, timeout=10)
+
+    def success(mode, data, expected):
+        result = subprocess.run([executable, mode], input=data, capture_output=True, timeout=10)
+        assert result.returncode == 0 and result.stdout == expected and not result.stderr, result
+
+    def failure(mode, data, message):
+        result = subprocess.run([executable, mode], input=data, capture_output=True, timeout=10)
+        assert result.returncode == 1 and not result.stdout and message.encode() in result.stderr, result
+
+    success("empty", b" \t\r\n\v\f", b"[]\n")
+    for value in [-(2**63), 2**63 - 1, -1, 0, 1]:
+        success("read-int", str(value).encode(), f"[{value}]\n".encode())
+    success("read-int", b"-0000", b"[0]\n")
+    success("read-int", b" \t0000123\r\n\v\f", b"[123]\n")
+    success("read-array", b"0", b"[]\n")
+    success("read-array", b"3 -9223372036854775808 0 9223372036854775807", b"[-9223372036854775808,0,9223372036854775807]\n")
+    success("array-then-int", b"4 2 7 11 15 9", b"[4,9]\n")
+    # Output and input both exceed the original console capture size.
+    large = [-(2**63)] * 10000
+    success("read-array", ("10000 " + " ".join(map(str, large))).encode(),
+            (json.dumps(large, separators=(",", ":")) + "\n").encode())
+    success("read-int", b" " * 262143 + b"1", b"[1]\n")
+    success("quota-array-ok", b"", b"")
+    for data in [b"", b" \t\r\n"]:
+        failure("read-int", data, "missing an integer")
+    for data in [b"+1", b"-", b"1x", b"1.0", b"0x12", b"1\0", b"\xff", "\u00a01".encode()]:
+        failure("read-int", data, "invalid signed integer")
+    for data in [b"9223372036854775808", b"-9223372036854775809", b"9" * 10000]:
+        failure("read-int", data, "signed i64 range")
+    failure("read-int", b"1 2", "unconsumed values")
+    failure("empty", b"1", "unconsumed values")
+    failure("read-int", b" " * 262144 + b"1", "input exceeds 262144 bytes")
+    failure("read-array", b"2 1", "missing an integer")
+    failure("read-array", b"-1", "must be nonnegative")
+    failure("read-array", b"10001", "array length exceeds 10000")
+    for mode, message in [("array-limit", "array length exceeds 10000"),
+                          ("index-negative", "index out of bounds"),
+                          ("index-upper", "index out of bounds"),
+                          ("map-limit", "map exceeds 10000 unique keys"),
+                          ("quota-map", "allocation budget exceeds 67108864 bytes"),
+                          ("quota-array", "allocation budget exceeds 67108864 bytes"),
+                          ("fuel", "instruction limit exceeded (1000000)"),
+                          ("wrong-type", "invalid native value type")]:
+        failure(mode, b"", message)
+    read_end, write_end = os.pipe()
+    os.close(read_end)
+    try:
+        result = subprocess.run([executable, "empty"], input=b"", stdout=write_end,
+                                stderr=subprocess.PIPE, timeout=10)
+    finally:
+        os.close(write_end)
+    assert result.returncode == 1 and b"cannot write compute output" in result.stderr
+
+
 @contextlib.contextmanager
 def server(executable, port=0, control=None):
     env = os.environ.copy()
@@ -185,11 +241,14 @@ def main():
         for name, flags in profiles:
             values = str(Path(build) / f"values-{name}")
             http = str(Path(build) / f"server-{name}")
+            compute = str(Path(build) / f"compute-{name}")
             compile_program("values.c", values, flags)
             compile_program("server.c", http, flags, link_runtime=True)
+            compile_program("compute.c", compute, flags)
             values_checks(values)
+            compute_checks(compute)
             http_checks(http)
-            print(f"{name}: native values, limits, HTTP framing, shutdown and rebind passed", flush=True)
+            print(f"{name}: native values, compute input/arrays/maps/limits, HTTP framing, shutdown and rebind passed", flush=True)
 
 
 if __name__ == "__main__":

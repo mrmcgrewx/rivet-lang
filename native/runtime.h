@@ -18,4 +18,16 @@ void rv_add_route(const unsigned char *path, uint64_t length, uint32_t status, v
 int32_t rv_serve(uint32_t port);
 void rv_cleanup(void);
 
+/* RVB2 computation support. Control flow and arithmetic are generated code. */
+int64_t rv2_read_int(void);
+void *rv2_read_array(void);
+int64_t rv2_array_len(void *array);
+int64_t rv2_array_get(void *array, int64_t index);
+void *rv2_array_make(const int64_t *values, uint64_t count);
+void *rv2_map_new(void);
+int64_t rv2_map_get(void *map, int64_t key, int64_t fallback);
+void rv2_map_put(void *map, int64_t key, int64_t value);
+void rv2_tick(void);
+void rv2_return(void *array);
+
 #endif

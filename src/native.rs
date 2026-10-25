@@ -178,7 +178,12 @@ pub fn build_native(
         build_ms: started.elapsed().as_millis(),
         entry: program.entry_info(),
     };
-    let metadata = serde_json::json!({"format":"rivet-native-build-v1","program":program.name(),"artifact":artifact,"backend":version.lines().next().unwrap_or("unknown"),"optimization":optimization,"runtime_abi":1,"generated_from":"validated typed register IR","source_or_interpreter_required_at_run_time":false});
+    let runtime_abi = if matches!(artifact.entry, EntryInfo::Compute) {
+        2
+    } else {
+        1
+    };
+    let metadata = serde_json::json!({"format":"rivet-native-build-v1","program":program.name(),"artifact":artifact,"backend":version.lines().next().unwrap_or("unknown"),"optimization":optimization,"runtime_abi":runtime_abi,"generated_from":"validated typed register IR","source_or_interpreter_required_at_run_time":false});
     // Publish only fully linked artifacts; generated siblings are inspection data, never runtime inputs.
     fs::rename(&ll, &artifact.llvm_path).map_err(|e| e.to_string())?;
     fs::rename(&asm, &artifact.assembly_path).map_err(|e| e.to_string())?;

@@ -6,7 +6,7 @@ use crate::{
 };
 use serde::Serialize;
 use std::{
-    io::{BufRead, BufReader, Read},
+    io::{BufRead, BufReader, Read, Write},
     net::SocketAddr,
     process::{Child, Command, Stdio},
     sync::{
@@ -56,9 +56,11 @@ pub struct NativeServer {
     readers: Vec<JoinHandle<()>>,
     exited: bool,
 }
-fn spawn(artifact: &NativeArtifact) -> Result<Child, RunError> {
+pub const MAX_INPUT_BYTES: usize = 262144;
+
+fn spawn(artifact: &NativeArtifact, stdin: Stdio) -> Result<Child, RunError> {
     Command::new(&artifact.path)
-        .stdin(Stdio::null())
+        .stdin(stdin)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .env("RIVET_CONTROL", "1")
@@ -77,17 +79,34 @@ fn read_bounded(mut input: impl Read) -> Vec<u8> {
         if n == 0 {
             break;
         }
-        let count = n.min(131072 - bytes.len());
+        let count = n.min(262144 - bytes.len());
         bytes.extend_from_slice(&buffer[..count]);
     }
     bytes
 }
 pub fn run_console(artifact: &NativeArtifact) -> Result<ConsoleResult, RunError> {
-    if !matches!(artifact.entry, EntryInfo::Console) {
+    run_console_with_input(artifact, "")
+}
+pub fn run_console_with_input(
+    artifact: &NativeArtifact,
+    input: &str,
+) -> Result<ConsoleResult, RunError> {
+    if matches!(artifact.entry, EntryInfo::Http { .. }) {
         return Err(RunError::new("Artifact is an HTTP server"));
     }
+    if input.len() > MAX_INPUT_BYTES {
+        return Err(RunError::new("Runtime input exceeds 262144 bytes"));
+    }
+    if !input.is_empty() && !matches!(artifact.entry, EntryInfo::Compute) {
+        return Err(RunError::new("This program does not accept runtime input"));
+    }
     let started = Instant::now();
-    let mut child = spawn(artifact)?;
+    let mut child = spawn(artifact, Stdio::piped())?;
+    let mut stdin = child.stdin.take().expect("stdin configured");
+    let input = input.as_bytes().to_vec();
+    // A full stdin pipe must not prevent timeout checks or stdout/stderr draining.
+    // Dropping this handle after writing sends EOF to the standalone executable.
+    let writer = thread::spawn(move || stdin.write_all(&input));
     let stdout = child.stdout.take().expect("stdout configured");
     let stderr = child.stderr.take().expect("stderr configured");
     let out = thread::spawn(move || read_bounded(stdout));
@@ -99,6 +118,7 @@ pub fn run_console(artifact: &NativeArtifact) -> Result<ConsoleResult, RunError>
                 if started.elapsed() > Duration::from_secs(5) {
                     let _ = child.kill();
                     let _ = child.wait();
+                    let _ = writer.join();
                     let _ = out.join();
                     let _ = err.join();
                     return Err(RunError::new("Console executable exceeded five seconds"));
@@ -108,10 +128,14 @@ pub fn run_console(artifact: &NativeArtifact) -> Result<ConsoleResult, RunError>
             Err(e) => {
                 let _ = child.kill();
                 let _ = child.wait();
+                let _ = writer.join();
+                let _ = out.join();
+                let _ = err.join();
                 return Err(RunError::new(e.to_string()));
             }
         }
     };
+    let input_result = writer.join();
     let stdout = String::from_utf8_lossy(&out.join().unwrap_or_default()).into_owned();
     let stderr = String::from_utf8_lossy(&err.join().unwrap_or_default()).into_owned();
     if !status.success() {
@@ -120,6 +144,9 @@ pub fn run_console(artifact: &NativeArtifact) -> Result<ConsoleResult, RunError>
             stderr,
             exit_code: status.code(),
         });
+    }
+    if !matches!(input_result, Ok(Ok(()))) {
+        return Err(RunError::new("Cannot deliver runtime input to executable"));
     }
     Ok(ConsoleResult {
         stdout,
@@ -133,7 +160,7 @@ impl NativeServer {
         let EntryInfo::Http { routes, .. } = &artifact.entry else {
             return Err(RunError::new("Artifact is a console program"));
         };
-        let mut child = spawn(artifact)?;
+        let mut child = spawn(artifact, Stdio::null())?;
         let stdout = child.stdout.take().expect("stdout configured");
         let stderr_pipe = child.stderr.take().expect("stderr configured");
         let requests = Arc::new(AtomicU64::new(0));

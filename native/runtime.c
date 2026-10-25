@@ -23,8 +23,13 @@
 #define RV_MAX_BODY ((size_t)524288)
 #define RV_MAX_PATH ((size_t)2048)
 #define RV_MAX_ROUTES ((size_t)32)
+#define RV2_MAX_INPUT ((size_t)262144)
+#define RV2_MAX_ITEMS ((size_t)10000)
+#define RV2_MAP_CAPACITY ((size_t)32768)
+#define RV2_MAX_ALLOCATION ((size_t)67108864)
+#define RV2_MAX_STEPS UINT64_C(1000000)
 
-typedef enum { RV_TEXT, RV_JSON } rv_kind;
+typedef enum { RV_TEXT, RV_JSON, RV_INT_ARRAY, RV_INT_MAP } rv_kind;
 typedef struct rv_value {
     struct rv_value *next;
     struct rv_value *json_encoding;
@@ -41,6 +46,21 @@ static rv_value *rv_allocations;
 static rv_route rv_routes[RV_MAX_ROUTES];
 static size_t rv_route_count;
 static volatile sig_atomic_t rv_stopping;
+static unsigned char *rv2_input;
+static size_t rv2_input_length;
+static size_t rv2_input_cursor;
+static size_t rv2_allocation_charge;
+static uint64_t rv2_steps;
+
+typedef struct {
+    int64_t key;
+    int64_t value;
+    uint64_t occupied;
+} rv2_map_slot;
+typedef struct {
+    size_t count;
+    rv2_map_slot slots[RV2_MAP_CAPACITY];
+} rv2_map;
 
 _Noreturn void rv_fail(const unsigned char *message, uint64_t length) {
     static const char prefix[] = "Rivet runtime: ";
@@ -279,6 +299,175 @@ void rv_print(void *text) {
     if (fwrite(value->bytes, 1, value->length, stdout) != value->length ||
         fputc('\n', stdout) == EOF || fflush(stdout) != 0) {
         rv_system_error("cannot write console output");
+    }
+}
+
+/* RVB2's logical quota is defined by the language, independent of allocator
+   headers and the reference implementation's container representation. */
+static void rv2_charge(size_t bytes) {
+    if (bytes > RV2_MAX_ALLOCATION - rv2_allocation_charge) {
+        rv_error("compute allocation budget exceeds 67108864 bytes");
+    }
+    rv2_allocation_charge += bytes;
+}
+
+void rv2_tick(void) {
+    if (rv2_steps == RV2_MAX_STEPS) rv_error("compute instruction limit exceeded (1000000)");
+    ++rv2_steps;
+}
+
+static int rv2_space(unsigned char byte) {
+    return byte == ' ' || (byte >= '\t' && byte <= '\r');
+}
+
+static void rv2_load_input(void) {
+    if (rv2_input != NULL) return;
+    rv2_input = malloc(RV2_MAX_INPUT + 1);
+    if (rv2_input == NULL) rv_error("cannot allocate runtime input");
+    rv2_input_length = fread(rv2_input, 1, RV2_MAX_INPUT + 1, stdin);
+    if (ferror(stdin)) rv_system_error("cannot read runtime input");
+    if (rv2_input_length > RV2_MAX_INPUT) rv_error("runtime input exceeds 262144 bytes");
+}
+
+static void rv2_skip_space(void) {
+    while (rv2_input_cursor < rv2_input_length && rv2_space(rv2_input[rv2_input_cursor])) {
+        ++rv2_input_cursor;
+    }
+}
+
+int64_t rv2_read_int(void) {
+    rv2_load_input();
+    rv2_skip_space();
+    if (rv2_input_cursor == rv2_input_length) rv_error("runtime input is missing an integer");
+    int negative = rv2_input[rv2_input_cursor] == '-';
+    if (negative) ++rv2_input_cursor;
+    if (rv2_input_cursor == rv2_input_length || rv2_input[rv2_input_cursor] < '0' ||
+        rv2_input[rv2_input_cursor] > '9') {
+        rv_error("runtime input contains an invalid signed integer");
+    }
+    uint64_t magnitude = 0;
+    uint64_t limit = negative ? UINT64_C(9223372036854775808) : UINT64_C(9223372036854775807);
+    while (rv2_input_cursor < rv2_input_length) {
+        unsigned char byte = rv2_input[rv2_input_cursor];
+        if (byte < '0' || byte > '9') break;
+        uint64_t digit = (uint64_t)(byte - '0');
+        if (magnitude > (limit - digit) / 10) rv_error("runtime input integer exceeds signed i64 range");
+        magnitude = magnitude * 10 + digit;
+        ++rv2_input_cursor;
+    }
+    if (rv2_input_cursor < rv2_input_length && !rv2_space(rv2_input[rv2_input_cursor])) {
+        rv_error("runtime input contains an invalid signed integer");
+    }
+    if (negative && magnitude == UINT64_C(9223372036854775808)) return INT64_MIN;
+    return negative ? -(int64_t)magnitude : (int64_t)magnitude;
+}
+
+static rv_value *rv2_new_array(uint64_t count) {
+    if (count > RV2_MAX_ITEMS) rv_error("integer array length exceeds 10000");
+    size_t bytes = (size_t)count * sizeof(int64_t);
+    rv2_charge(bytes);
+    return rv_allocate(bytes, RV_INT_ARRAY);
+}
+
+void *rv2_read_array(void) {
+    int64_t count = rv2_read_int();
+    if (count < 0) rv_error("integer array length must be nonnegative");
+    rv_value *result = rv2_new_array((uint64_t)count);
+    int64_t *items = (int64_t *)(void *)result->bytes;
+    for (size_t index = 0; index < (size_t)count; ++index) items[index] = rv2_read_int();
+    return result;
+}
+
+void *rv2_array_make(const int64_t *values, uint64_t count) {
+    if (count != 0 && values == NULL) rv_error("missing integer array elements");
+    rv_value *result = rv2_new_array(count);
+    if (count != 0) memcpy(result->bytes, values, result->length);
+    return result;
+}
+
+int64_t rv2_array_len(void *array) {
+    rv_value *value = rv_require(array, RV_INT_ARRAY);
+    return (int64_t)(value->length / sizeof(int64_t));
+}
+
+int64_t rv2_array_get(void *array, int64_t index) {
+    rv_value *value = rv_require(array, RV_INT_ARRAY);
+    if (index < 0 || (uint64_t)index >= value->length / sizeof(int64_t)) {
+        rv_error("integer array index out of bounds");
+    }
+    return ((const int64_t *)(const void *)value->bytes)[(size_t)index];
+}
+
+void *rv2_map_new(void) {
+    rv2_charge(RV2_MAP_CAPACITY * 24);
+    rv_value *value = rv_allocate(sizeof(rv2_map), RV_INT_MAP);
+    memset(value->bytes, 0, sizeof(rv2_map));
+    return value;
+}
+
+/* SplitMix64's finalizer spreads all signed keys, including zero and extrema.
+   Unsigned arithmetic is intentional and defined modulo 2^64. */
+static size_t rv2_hash(int64_t key) {
+    uint64_t value = (uint64_t)key;
+    value = (value ^ (value >> 30)) * UINT64_C(0xbf58476d1ce4e5b9);
+    value = (value ^ (value >> 27)) * UINT64_C(0x94d049bb133111eb);
+    value ^= value >> 31;
+    return (size_t)(value & (RV2_MAP_CAPACITY - 1));
+}
+
+static rv2_map_slot *rv2_find_slot(rv2_map *map, int64_t key) {
+    size_t index = rv2_hash(key);
+    for (size_t probes = 0; probes < RV2_MAP_CAPACITY; ++probes) {
+        rv2_map_slot *slot = &map->slots[index];
+        if (!slot->occupied || slot->key == key) return slot;
+        index = (index + 1) & (RV2_MAP_CAPACITY - 1);
+    }
+    rv_error("integer map has no available slot");
+}
+
+int64_t rv2_map_get(void *map, int64_t key, int64_t fallback) {
+    rv_value *value = rv_require(map, RV_INT_MAP);
+    rv2_map_slot *slot = rv2_find_slot((rv2_map *)(void *)value->bytes, key);
+    return slot->occupied ? slot->value : fallback;
+}
+
+void rv2_map_put(void *map, int64_t key, int64_t item) {
+    rv_value *value = rv_require(map, RV_INT_MAP);
+    rv2_map *table = (rv2_map *)(void *)value->bytes;
+    rv2_map_slot *slot = rv2_find_slot(table, key);
+    if (!slot->occupied) {
+        if (table->count == RV2_MAX_ITEMS) rv_error("integer map exceeds 10000 unique keys");
+        ++table->count;
+        slot->key = key;
+        slot->occupied = 1;
+    }
+    slot->value = item;
+}
+
+void rv2_return(void *array) {
+    rv_value *value = rv_require(array, RV_INT_ARRAY);
+    rv2_load_input();
+    rv2_skip_space();
+    if (rv2_input_cursor != rv2_input_length) rv_error("runtime input has unconsumed values");
+    size_t count = value->length / sizeof(int64_t);
+    const int64_t *items = (const int64_t *)(const void *)value->bytes;
+    /* 20 digits/sign, comma and terminator per integer, plus brackets/newline. */
+    size_t capacity = count * 22 + 4;
+    rv_value *output = rv_allocate(capacity, RV_TEXT);
+    size_t length = 0;
+    output->bytes[length++] = '[';
+    for (size_t index = 0; index < count; ++index) {
+        if (index != 0) output->bytes[length++] = ',';
+        int written = snprintf((char *)output->bytes + length, capacity - length, "%" PRId64, items[index]);
+        if (written < 0 || (size_t)written >= capacity - length) rv_error("cannot format signed integer array");
+        length += (size_t)written;
+    }
+    output->bytes[length++] = ']';
+    output->bytes[length++] = '\n';
+    if (length > RV2_MAX_INPUT) rv_error("compute output exceeds 262144 bytes");
+    rv_ignore_sigpipe();
+    if (fwrite(output->bytes, 1, length, stdout) != length || fflush(stdout) != 0) {
+        rv_system_error("cannot write compute output");
     }
 }
 
@@ -599,4 +788,10 @@ void rv_cleanup(void) {
         free(value);
     }
     rv_route_count = 0;
+    free(rv2_input);
+    rv2_input = NULL;
+    rv2_input_length = 0;
+    rv2_input_cursor = 0;
+    rv2_allocation_charge = 0;
+    rv2_steps = 0;
 }
