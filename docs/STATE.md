@@ -1,11 +1,11 @@
 # Project state
 
-State version: 17. Updated: 2026-10-25.
+State version: 18. Updated: 2026-10-25.
 Public repository: https://github.com/mrmcgrewx/rivet-lang
 
 ## Current objective and implementation
 
-Median of Two Sorted Arrays is the active milestone. `MEDIAN-PLAN.md` fixes the additive Float encoding, logarithmic binary-partition source, speed profile, comparison methodology and ownership before delegation. Implement reusable floating-point operations and compare runtime/memory with equivalent C/Python algorithms. Earlier milestones below remain complete. No new implementation or benchmark result is claimed at this planning checkpoint.
+Median of Two Sorted Arrays is implemented and locally verified. `MEDIAN-PLAN.md` fixed additive Float encoding, logarithmic binary-partition source, speed profile, comparison methodology and ownership at `cccf624` before delegation. The 803-byte/81-operation source passes 275 oracle cases under three native profiles and 3135 exhaustive small reference cases. Eight generic Float tests, existing regressions, C/UBSan, 18 browser scenarios and actual in-app runs pass. The C/Python comparison harness passes its bounded correctness smoke; independent review, a clean committed checkout, full comparative measurements and public CI are final gates. See `MEDIAN-VALIDATION.md` and `MEDIAN-BENCHMARK-METHOD.md`.
 
 Add Two Numbers is complete. Implementation `432cd26b4c4cf4a848d8b41695a54f681c4890c4` includes `examples/add-two-numbers.rvb`: 657 binary bytes and 70 operations over real linked nodes. Reusable typed copy, guarded division/remainder, assertions and list operations extend RVB2 without changing prior files. Native/reference/big-integer-oracle tests, generic list tests, C/UBSan, 16 browser scenarios and actual in-app runs passed. Independent review found no blocker; a fresh public clone passed all 85 Rust tests and 16 browser scenarios, and public CI succeeded. See `ADD-TWO-NUMBERS-VALIDATION.md`. `ADD-TWO-NUMBERS-PLAN.md` fixed the contract at `8a6b220`; `ROADMAP.md` records the user's broader agent-language/performance goal without claiming current competitiveness.
 
@@ -32,17 +32,20 @@ Read `BINARY-PLAN.md`, `TWO-SUM-PLAN.md` and `ADD-TWO-NUMBERS-PLAN.md` for commi
 | RVB2 clean reproduction | Complete | Fresh public clone `9594d6f`: 73 Rust tests, 14 browser scenarios, C/UBSan, release build, exact fixture regeneration and independent native copies passed; GitHub CI run `40228140611` succeeded |
 | Linked-data / Add Two Numbers | Complete | `432cd26`: 657-byte program, real nodes, reusable copy/div/rem/assert, 270 oracle cases under both native profiles, independent review, 16 browser scenarios and actual in-app runs |
 | Linked-data clean reproduction | Complete | Fresh public clone `432cd26`: 85 Rust tests, 16 browser scenarios, C/UBSan, release build, exact fixture regeneration and independent native copies passed; GitHub CI run `40230249273` succeeded |
+| Float / Median | Implemented and locally verified | Binary partition source, reusable finite binary64, three native profiles, oracle/generic tests and 18 browser scenarios |
+| Comparative performance | Method implemented, final measurements pending | Equivalent C/Python partition search, process and preloaded scopes, per-child RSS; bounded correctness smoke passes |
+| Median clean reproduction | Pending | Fresh committed clone, full measurement and public CI remain |
 
 Commits remain the ledger; no Issues/Projects board. Coordinator owns shared docs, backend integration, examples, Git and final acceptance. Agents own binary codec/spec/tests, binary UI/browser tests, and independent review as specified in the committed plan. All contributions must persist handoffs.
 
 ## Evidence and limits
 
-The five directly authored source files are 49/64/159/231/657 bytes. Tests cover byte bounds, exact roundtrips, typed data/control flow, aliases/shared tails, checked arithmetic, malformed input, native/reference/oracle outcomes, GUI state and independent artifacts. Historical RVB1 size measurements predate the compute runtime extensions; they do not establish current artifact sizes or runtime-speed competitiveness. `ROADMAP.md` defines the broader measurement goals.
+The six directly authored source files are 49/64/159/231/657/803 bytes. Tests cover byte bounds, exact roundtrips, typed data/control flow, aliases/shared tails, checked integer/Float arithmetic, malformed input, native/reference/oracle outcomes, GUI state and independent artifacts. Historical RVB1 size measurements predate the compute runtime extensions; they do not establish current artifact sizes or runtime-speed competitiveness. `ROADMAP.md` defines the broader measurement goals; median comparisons are scoped to one algorithm and host.
 
 A binary file is not encryption or intrinsically exclusive to AI. Literal strings may remain visible; GUI/CLI decoding makes instructions readable. The experiment has not measured AI authoring advantages. RVB1 remains straight-line; RVB2 adds branches/loops and runtime computation, with one-million-instruction fuel and 64 MiB logical allocation charging. User functions, persistence and HTTP request-dependent values remain unsupported. HTTP responses are computed at startup. RVB1 per-value limits are not aggregate hostile-program memory quotas; RVB2's logical budget is not an RSS guarantee. Native transport is loopback-only and bounded, not production HTTP. Only macOS Apple Silicon is verified; LLVM/Clang emits native machine code.
 
 ## Handoff
 
-The binary-source, Two Sum and Add Two Numbers milestones are complete; no required acceptance work remains for this milestone. The local `.rivet/add-two-numbers-deliverables/add-two-numbers` is a verified 35544-byte standalone executable. The live release workbench on port 7331 includes the new example; actual UI verification ran all published inputs, invalid-digit recovery and 100-digit carry using one build. Preserve the user's live session. Future work should follow `ROADMAP.md`, preserve version compatibility and keep algorithm logic out of generic runtime helpers.
+Prior milestones are complete. Finish median's independent review, clean public-checkout/CI gate and comparative report before marking the current milestone complete. `.rivet/median-deliverables/median` is a 34792-byte speed-profile standalone executable; the actual UI's size-profile artifact is 35336 bytes. The live release workbench on port 7331 includes median; actual UI verification ran odd/fractional results, both-empty failure and negative-half recovery using one build. Preserve the user's live session. Future work should follow `ROADMAP.md`, preserve version compatibility and keep algorithm logic out of generic runtime helpers.
 
 Continue from the binary specification and preserve canonical source bytes, not the old JSON frontend. Do not use historical JSON-oriented screenshots or completion records as proof of current acceptance. New language features or measured AI-authoring experiments require their own scoped design and validation.

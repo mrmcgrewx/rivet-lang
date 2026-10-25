@@ -174,6 +174,10 @@ impl Workbench {
                         include_bytes!("../examples/add-two-numbers.rvb"),
                         "add-two-numbers.rvb",
                     )),
+                    "median-two-sorted-arrays" => Some((
+                        include_bytes!("../examples/median-two-sorted-arrays.rvb"),
+                        "median-two-sorted-arrays.rvb",
+                    )),
                     _ => None,
                 };
                 if let Some((bytes, filename)) = example {
@@ -223,7 +227,8 @@ impl Workbench {
                         {"id":"server","name":"HTTP server","url":"/api/examples/server","filename":"server.rvb"},
                         {"id":"computed","name":"Computed values","url":"/api/examples/computed","filename":"computed.rvb"},
                         {"id":"two-sum","name":"Two Sum","url":"/api/examples/two-sum","filename":"two-sum.rvb","input":"4 2 7 11 15 9\n"},
-                        {"id":"add-two-numbers","name":"Add Two Numbers","url":"/api/examples/add-two-numbers","filename":"add-two-numbers.rvb","input":"3 2 4 3 3 5 6 4\n"}
+                        {"id":"add-two-numbers","name":"Add Two Numbers","url":"/api/examples/add-two-numbers","filename":"add-two-numbers.rvb","input":"3 2 4 3 3 5 6 4\n"},
+                        {"id":"median-two-sorted-arrays","name":"Median of Two Sorted Arrays","url":"/api/examples/median-two-sorted-arrays","filename":"median-two-sorted-arrays.rvb","input":"2 1 3 1 2\n"}
                     ]}),
                 ),
                 _ => send_json(request, 404, error("Not found")),

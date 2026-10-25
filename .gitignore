@@ -6,3 +6,5 @@
 /playwright-report/
 
 /.rivet/
+__pycache__/
+*.pyc

@@ -16,19 +16,22 @@ static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 pub enum BuildProfile {
     Size,
     Baseline,
+    Speed,
 }
 impl BuildProfile {
     pub fn name(self) -> &'static str {
         match self {
             Self::Size => "size",
             Self::Baseline => "baseline",
+            Self::Speed => "speed",
         }
     }
     pub fn parse(value: &str) -> Result<Self, String> {
         match value {
             "size" => Ok(Self::Size),
             "baseline" => Ok(Self::Baseline),
-            _ => Err("Profile must be size or baseline".into()),
+            "speed" => Ok(Self::Speed),
+            _ => Err("Profile must be size, baseline or speed".into()),
         }
     }
 }
@@ -123,6 +126,7 @@ pub fn build_native(
     let optimization = match profile {
         BuildProfile::Size => "-Oz",
         BuildProfile::Baseline => "-O0",
+        BuildProfile::Speed => "-O3",
     };
     checked(
         Command::new(&clang)
@@ -159,7 +163,7 @@ pub fn build_native(
     )?;
     let mut link = Command::new(&clang);
     link.arg(&object).arg(&runtime_object);
-    if matches!(profile, BuildProfile::Size) {
+    if matches!(profile, BuildProfile::Size | BuildProfile::Speed) {
         link.arg(if cfg!(target_os = "macos") {
             "-Wl,-dead_strip"
         } else {

@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <limits.h>
+#include <math.h>
 #include <poll.h>
 #include <signal.h>
 #include <stddef.h>
@@ -461,6 +462,16 @@ static void rv2_write_output(const unsigned char *bytes, size_t length) {
     if (fwrite(bytes, 1, length, stdout) != length || fflush(stdout) != 0) {
         rv_system_error("cannot write compute output");
     }
+}
+
+void rv2_return_float(double value) {
+    if (!isfinite(value)) rv_error("nonfinite Float output");
+    rv2_finish_input();
+    /* 17 significant digits roundtrip binary64; C starts in the C locale. */
+    char output[64];
+    int length = snprintf(output, sizeof(output), "%.16e\n", value);
+    if (length < 0 || (size_t)length >= sizeof(output)) rv_error("cannot format Float output");
+    rv2_write_output((const unsigned char *)output, (size_t)length);
 }
 
 void rv2_return(void *array) {

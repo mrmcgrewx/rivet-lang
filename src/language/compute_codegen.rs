@@ -21,6 +21,7 @@ declare i64 @rv2_list_value(ptr)
 declare ptr @rv2_list_next(ptr)
 declare i64 @rv2_list_len(ptr)
 declare void @rv2_return_list(ptr)
+declare void @rv2_return_float(double)
 declare void @rv_fail(ptr, i64) noreturn
 declare void @rv_cleanup()
 "#;
@@ -28,6 +29,7 @@ fn llvm_type(kind: RegisterType) -> &'static str {
     match kind {
         RegisterType::Int => "i64",
         RegisterType::Bool => "i1",
+        RegisterType::Float => "double",
         RegisterType::Array | RegisterType::Map | RegisterType::List => "ptr",
     }
 }
@@ -75,6 +77,39 @@ impl Emitter<'_> {
         match operation {
             Op::Int(d, value) => self.store(*d, &value.to_string()),
             Op::Bool(d, value) => self.store(*d, if *value { "true" } else { "false" }),
+            Op::Float(d, bits) => self.store(*d, &format!("0x{bits:016X}")),
+            Op::IntToFloat(d, source) => {
+                let source = self.load(*source);
+                let value = self.temp();
+                writeln!(self.body, "  {value} = sitofp i64 {source} to double").unwrap();
+                self.store(*d, &value);
+            }
+            Op::FloatAdd(d, a, b) | Op::FloatDiv(d, a, b) => {
+                let a = self.load(*a);
+                let b = self.load(*b);
+                if matches!(operation, Op::FloatDiv(..)) {
+                    let zero = self.temp();
+                    writeln!(self.body, "  {zero} = fcmp oeq double {b}, 0x0000000000000000\n  br i1 {zero}, label %float_division_zero, label %float_nonzero{pc}\nfloat_nonzero{pc}:").unwrap();
+                }
+                let value = self.temp();
+                let bits = self.temp();
+                let exponent = self.temp();
+                let nonfinite = self.temp();
+                let instruction = if matches!(operation, Op::FloatAdd(..)) {
+                    "fadd"
+                } else {
+                    "fdiv"
+                };
+                // No fast-math flags: retain signed zero, underflow/subnormals and
+                // round-to-nearest semantics. An all-ones exponent is nonfinite.
+                writeln!(self.body, "  {value} = {instruction} double {a}, {b}\n  {bits} = bitcast double {value} to i64\n  {exponent} = and i64 {bits}, 9218868437227405312\n  {nonfinite} = icmp eq i64 {exponent}, 9218868437227405312\n  br i1 {nonfinite}, label %float_nonfinite, label %float_finite{pc}\nfloat_finite{pc}:").unwrap();
+                self.store(*d, &value);
+            }
+            Op::ReturnFloat(value) => {
+                let value = self.load(*value);
+                writeln!(self.body, "  call void @rv2_return_float(double {value})\n  call void @rv_cleanup()\n  ret i32 0").unwrap();
+                return;
+            }
             Op::Copy(d, source) => {
                 let value = self.load(*source);
                 self.store(*d, &value);
@@ -275,6 +310,16 @@ pub(super) fn emit(program: &ComputeProgram) -> String {
             "division or remainder by zero".to_owned(),
         ),
     ];
+    failures.extend([
+        (
+            "float_division_zero".to_owned(),
+            "floating-point division by zero".to_owned(),
+        ),
+        (
+            "float_nonfinite".to_owned(),
+            "nonfinite floating-point result".to_owned(),
+        ),
+    ]);
     for (pc, operation) in program.operations.iter().enumerate() {
         if matches!(operation, Op::Assert(_)) {
             failures.push((

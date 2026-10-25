@@ -397,6 +397,81 @@ test("Add Two Numbers input assertions recover on the same build and retain othe
   await expect(input).toHaveAttribute("aria-describedby", "runtime-input-help two-sum-input-help");
 });
 
+test("Median uses one native binary for odd fractional negative and empty-sided inputs", async ({ page }) => {
+  const builds = [];
+  page.on("request", request => {
+    if (request.url().endsWith("/api/build")) builds.push(request);
+  });
+  await page.getByRole("button", { name: "Median of Two Sorted Arrays", exact: true }).click();
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
+  const input = page.getByRole("textbox", { name: "Runtime input", exact: true });
+  await expect(input).toHaveValue("2 1 3 1 2\n");
+  await expect(page.locator("#median-input-help")).toBeVisible();
+  await expect(page.locator("#median-input-help")).toContainText("already sorted");
+  await expect(page.locator("#median-input-help")).toContainText("caller preconditions");
+  await expect(page.locator("#median-input-help")).toContainText("O(log(min(m,n)+1))");
+  await expect(page.locator("#median-input-help")).toContainText("O(m+n)");
+  await expect(input).toHaveAttribute("aria-describedby", "runtime-input-help median-input-help");
+  await expect(page.getByRole("textbox", { name: "Decoded program", exact: true })).toHaveValue(/Float/);
+  const bytes = await fixture("median-two-sorted-arrays");
+  expect((await downloadBytes(page, "Download binary source")).bytes).toEqual(bytes);
+  const compiled = await build(page);
+  const cases = [
+    ["2 1 3 1 2\n", "2.0000000000000000e+00\n"],
+    ["2 1 2 2 3 4\n", "2.5000000000000000e+00\n"],
+    ["1 -1 1 0\n", "-5.0000000000000000e-01\n"],
+    ["0 2 2 3\n", "2.5000000000000000e+00\n"],
+    ["2 -3 -2 0\n", "-2.5000000000000000e+00\n"],
+  ];
+  for (const [data, answer] of cases) {
+    await input.fill(data);
+    await expect(page.locator("#source-badge")).toHaveText("Built");
+    await expect(page.getByLabel("Executable path")).toHaveText(compiled.artifact.path);
+    const pending = page.waitForRequest(request => request.url().endsWith("/api/run"));
+    await page.getByRole("button", { name: "Run executable", exact: true }).click();
+    expect((await pending).postDataJSON()).toEqual({ build_id: compiled.id, input: data });
+    await expect(page.getByLabel("Program output")).toHaveText(answer);
+    expect(await page.getByLabel("Program output").textContent()).toBe(answer);
+    await expect(page.locator("#console-detail")).toContainText(`Build #${compiled.id}`);
+    await expect(page.locator("#console-detail")).toContainText("Exit code 0");
+    await expect(input).toBeEnabled();
+  }
+  expect(builds).toHaveLength(1);
+  expect((await downloadBytes(page, "Download binary source")).bytes).toEqual(bytes);
+  await page.getByRole("combobox", { name: "Source view", exact: true }).selectOption("hex");
+  const hex = page.getByRole("textbox", { name: "Binary source bytes", exact: true });
+  expect(Buffer.from((await hex.inputValue()).replace(/\s/g, ""), "hex")).toEqual(bytes);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator("#median-input-help")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+});
+
+test("Median input failures recover without rebuilding and other example guidance is retained", async ({ page }) => {
+  await page.getByRole("button", { name: "Median of Two Sorted Arrays", exact: true }).click();
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
+  const input = page.getByRole("textbox", { name: "Runtime input", exact: true });
+  const compiled = await build(page);
+  for (const [invalid, reason] of [["0 0\n", /assertion failed/], ["2 1 invalid 1 2\n", /integer|input|decimal/i]]) {
+    await input.fill(invalid);
+    await page.getByRole("button", { name: "Run executable", exact: true }).click();
+    await expect(page.locator("#diagnostics")).toContainText(reason);
+    await expect(page.locator("#source-badge")).toHaveText("Built");
+    await expect(input).toBeEnabled();
+    await input.fill("2 1 2 2 3 4\n");
+    await page.getByRole("button", { name: "Run executable", exact: true }).click();
+    await expect(page.getByLabel("Program output")).toHaveText("2.5000000000000000e+00\n");
+    await expect(page.locator("#diagnostics li")).toHaveCount(0);
+    await expect(page.getByLabel("Executable path")).toHaveText(compiled.artifact.path);
+  }
+  expect((await downloadBytes(page, "Download binary source")).bytes).toEqual(await fixture("median-two-sorted-arrays"));
+  await page.getByRole("button", { name: "Add Two Numbers", exact: true }).click();
+  await expect(page.locator("#inspection-status")).toContainText("Valid binary");
+  await expect(input).toHaveValue("3 2 4 3 3 5 6 4\n");
+  await expect(page.locator("#add-two-numbers-input-help")).toBeVisible();
+  await expect(page.locator("#median-input-help")).toBeHidden();
+  await expect(input).toHaveAttribute("aria-describedby", "runtime-input-help add-two-numbers-input-help");
+});
+
 test("literal editor preserves exact i64 values in bytes and HTTP output", async ({ page }) => {
   await openBytes(page, intServer(0), "integer.rvb");
   await editLiteral(page, 0, "9223372036854775807");

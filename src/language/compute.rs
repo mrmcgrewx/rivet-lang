@@ -20,6 +20,7 @@ pub(super) enum RegisterType {
     Array,
     Map,
     List,
+    Float,
 }
 impl RegisterType {
     fn from_tag(tag: u8) -> Option<Self> {
@@ -29,6 +30,7 @@ impl RegisterType {
             5 => Some(Self::Array),
             6 => Some(Self::Map),
             7 => Some(Self::List),
+            8 => Some(Self::Float),
             _ => None,
         }
     }
@@ -39,6 +41,7 @@ impl RegisterType {
             Self::Array => 5,
             Self::Map => 6,
             Self::List => 7,
+            Self::Float => 8,
         }
     }
     pub(super) fn name(self) -> &'static str {
@@ -48,6 +51,7 @@ impl RegisterType {
             Self::Array => "IntArray",
             Self::Map => "IntMap",
             Self::List => "IntList",
+            Self::Float => "Float",
         }
     }
 }
@@ -56,6 +60,7 @@ impl RegisterType {
 pub(super) enum Op {
     Int(usize, i64),
     Bool(usize, bool),
+    Float(usize, u64),
     Add(usize, usize, usize),
     Sub(usize, usize, usize),
     Equal(usize, usize, usize),
@@ -63,6 +68,9 @@ pub(super) enum Op {
     Copy(usize, usize),
     Div(usize, usize, usize),
     Rem(usize, usize, usize),
+    IntToFloat(usize, usize),
+    FloatAdd(usize, usize, usize),
+    FloatDiv(usize, usize, usize),
     ReadInt(usize),
     ReadArray(usize),
     Length(usize, usize),
@@ -75,6 +83,7 @@ pub(super) enum Op {
     Branch(usize, usize, usize),
     Return(usize),
     ReturnList(usize),
+    ReturnFloat(usize),
     Assert(usize),
     Nil(usize),
     Cons(usize, usize, usize),
@@ -89,6 +98,10 @@ impl Op {
         match self {
             Self::Int(d, _)
             | Self::Bool(d, _)
+            | Self::Float(d, _)
+            | Self::IntToFloat(d, _)
+            | Self::FloatAdd(d, ..)
+            | Self::FloatDiv(d, ..)
             | Self::Add(d, ..)
             | Self::Sub(d, ..)
             | Self::Equal(d, ..)
@@ -115,6 +128,7 @@ impl Op {
             | Self::Branch(..)
             | Self::Return(_)
             | Self::ReturnList(_)
+            | Self::ReturnFloat(_)
             | Self::Assert(_) => None,
         }
     }
@@ -122,6 +136,7 @@ impl Op {
         match self {
             Self::Int(..)
             | Self::Bool(..)
+            | Self::Float(..)
             | Self::ReadInt(_)
             | Self::ReadArray(_)
             | Self::Map(_)
@@ -134,17 +149,21 @@ impl Op {
             | Self::Less(_, a, b)
             | Self::Div(_, a, b)
             | Self::Rem(_, a, b)
+            | Self::FloatAdd(_, a, b)
+            | Self::FloatDiv(_, a, b)
             | Self::Cons(_, a, b)
             | Self::Get(_, a, b) => vec![*a, *b],
             Self::Length(_, a)
             | Self::Return(a)
             | Self::Branch(a, ..)
             | Self::Copy(_, a)
+            | Self::IntToFloat(_, a)
             | Self::IsNil(_, a)
             | Self::ListValue(_, a)
             | Self::ListNext(_, a)
             | Self::ListLength(_, a)
             | Self::ReturnList(a)
+            | Self::ReturnFloat(a)
             | Self::Assert(a) => vec![*a],
             Self::Array(_, values) => values.clone(),
             Self::Lookup(_, a, b, c) | Self::Put(a, b, c) => vec![*a, *b, *c],
@@ -152,7 +171,7 @@ impl Op {
     }
     fn successors(&self, pc: usize) -> Vec<usize> {
         match self {
-            Self::Return(_) | Self::ReturnList(_) => vec![],
+            Self::Return(_) | Self::ReturnList(_) | Self::ReturnFloat(_) => vec![],
             Self::Jump(target) => vec![*target],
             Self::Branch(_, yes, no) => vec![*yes, *no],
             _ => vec![pc + 1],
@@ -166,6 +185,11 @@ impl Op {
                 payload.extend_from_slice(&value.to_le_bytes());
                 (0x02, 2)
             }
+            Self::Float(d, bits) => {
+                put_u16(&mut payload, *d);
+                payload.extend_from_slice(&bits.to_le_bytes());
+                (0x04, 8)
+            }
             Self::Bool(d, value) => {
                 put_u16(&mut payload, *d);
                 payload.push(u8::from(*value));
@@ -177,6 +201,8 @@ impl Op {
             | Self::Less(d, a, b)
             | Self::Div(d, a, b)
             | Self::Rem(d, a, b)
+            | Self::FloatAdd(d, a, b)
+            | Self::FloatDiv(d, a, b)
             | Self::Cons(d, a, b)
             | Self::Get(d, a, b) => {
                 put_refs(&mut payload, &[*d, *a, *b]);
@@ -187,6 +213,8 @@ impl Op {
                     Self::Less(..) => (0x15, 3),
                     Self::Div(..) => (0x17, 2),
                     Self::Rem(..) => (0x18, 2),
+                    Self::FloatAdd(..) => (0x1a, 8),
+                    Self::FloatDiv(..) => (0x1b, 8),
                     Self::Cons(..) => (0x61, 7),
                     _ => (0x33, 2),
                 }
@@ -207,6 +235,7 @@ impl Op {
             }
             Self::Length(d, a)
             | Self::Copy(d, a)
+            | Self::IntToFloat(d, a)
             | Self::IsNil(d, a)
             | Self::ListValue(d, a)
             | Self::ListNext(d, a)
@@ -214,6 +243,7 @@ impl Op {
                 put_refs(&mut payload, &[*d, *a]);
                 match self {
                     Self::Copy(..) => (0x16, types[*d].tag()),
+                    Self::IntToFloat(..) => (0x19, 8),
                     Self::IsNil(..) => (0x62, 3),
                     Self::ListValue(..) => (0x63, 2),
                     Self::ListNext(..) => (0x64, 7),
@@ -242,12 +272,16 @@ impl Op {
                 put_refs(&mut payload, &[*condition, *yes, *no]);
                 (0x51, 0)
             }
-            Self::Return(value) | Self::ReturnList(value) | Self::Assert(value) => {
+            Self::Return(value)
+            | Self::ReturnList(value)
+            | Self::ReturnFloat(value)
+            | Self::Assert(value) => {
                 put_u16(&mut payload, *value);
                 (
                     match self {
                         Self::Return(_) => 0x52,
                         Self::ReturnList(_) => 0x53,
+                        Self::ReturnFloat(_) => 0x55,
                         _ => 0x54,
                     },
                     0,
@@ -307,7 +341,7 @@ fn decode_op(
     count: usize,
     index: usize,
 ) -> Result<(Op, BinaryInstructionInfo), Diagnostic> {
-    use RegisterType::{Array, Bool, Int, List, Map};
+    use RegisterType::{Array, Bool, Float, Int, List, Map};
     let offset = reader.position();
     let opcode = reader.u8("instruction opcode")?;
     let tag = reader.u8("result type tag")?;
@@ -315,13 +349,14 @@ fn decode_op(
         match opcode {
             0x02 | 0x11 | 0x13 | 0x17 | 0x18 | 0x30 | 0x32 | 0x33 | 0x41 | 0x63 | 0x66 => Some(Int),
             0x03 | 0x14 | 0x15 | 0x62 => Some(Bool),
+            0x04 | 0x19 | 0x1a | 0x1b => Some(Float),
             0x16 => Some(RegisterType::from_tag(tag).ok_or_else(|| {
                 error(offset + 1, "copy requires a valid compute result type tag")
             })?),
             0x60 | 0x61 | 0x64 | 0x65 => Some(List),
             0x31 | 0x34 => Some(Array),
             0x40 => Some(Map),
-            0x42 | 0x50 | 0x51 | 0x52 | 0x53 | 0x54 => None,
+            0x42 | 0x50 | 0x51 | 0x52 | 0x53 | 0x54 | 0x55 => None,
             _ => return Err(error(offset, format!("unknown RVB2 opcode 0x{opcode:02x}"))),
         };
     let expected_tag = expected.map_or(0, RegisterType::tag);
@@ -350,6 +385,21 @@ fn decode_op(
                 .expect("length checked");
             Op::Int(d, i64::from_le_bytes(bytes))
         }
+        0x04 => {
+            let literal_offset = p.position();
+            let bytes: [u8; 8] = p
+                .take(8, "Float literal")?
+                .try_into()
+                .expect("length checked");
+            let bits = u64::from_le_bytes(bytes);
+            if !f64::from_bits(bits).is_finite() {
+                return Err(error(
+                    literal_offset,
+                    "Float literal must be finite; NaN and infinity are not supported",
+                ));
+            }
+            Op::Float(d, bits)
+        }
         0x03 => {
             let value = p.u8("Bool literal")?;
             if value > 1 {
@@ -373,6 +423,16 @@ fn decode_op(
             d,
             register(&mut p, types, expected.expect("copy has a result type"))?,
         ),
+        0x19 => Op::IntToFloat(d, register(&mut p, types, Int)?),
+        0x1a | 0x1b => {
+            let left = register(&mut p, types, Float)?;
+            let right = register(&mut p, types, Float)?;
+            if opcode == 0x1a {
+                Op::FloatAdd(d, left, right)
+            } else {
+                Op::FloatDiv(d, left, right)
+            }
+        }
         0x30 => Op::ReadInt(d),
         0x31 => Op::ReadArray(d),
         0x32 => Op::Length(d, register(&mut p, types, Array)?),
@@ -417,6 +477,7 @@ fn decode_op(
         0x52 => Op::Return(register(&mut p, types, Array)?),
         0x53 => Op::ReturnList(register(&mut p, types, List)?),
         0x54 => Op::Assert(register(&mut p, types, Bool)?),
+        0x55 => Op::ReturnFloat(register(&mut p, types, Float)?),
         0x60 => Op::Nil(d),
         0x61 => Op::Cons(
             d,
@@ -647,6 +708,11 @@ impl ComputeProgram {
             match op {
                 Op::Int(d, n) => write!(text, "%{d} = int {n}"),
                 Op::Bool(d, b) => write!(text, "%{d} = bool {b}"),
+                Op::Float(d, bits) => write!(
+                    text,
+                    "%{d} = float {} ; bits 0x{bits:016x}",
+                    format_float(f64::from_bits(*bits))
+                ),
                 Op::Add(d, a, b) => write!(text, "%{d} = add %{a}, %{b}"),
                 Op::Sub(d, a, b) => write!(text, "%{d} = sub %{a}, %{b}"),
                 Op::Equal(d, a, b) => write!(text, "%{d} = eq %{a}, %{b}"),
@@ -654,6 +720,9 @@ impl ComputeProgram {
                 Op::Copy(d, a) => write!(text, "%{d} = copy %{a}"),
                 Op::Div(d, a, b) => write!(text, "%{d} = div %{a}, %{b}"),
                 Op::Rem(d, a, b) => write!(text, "%{d} = rem %{a}, %{b}"),
+                Op::IntToFloat(d, a) => write!(text, "%{d} = int_to_float %{a}"),
+                Op::FloatAdd(d, a, b) => write!(text, "%{d} = float_add %{a}, %{b}"),
+                Op::FloatDiv(d, a, b) => write!(text, "%{d} = float_div %{a}, %{b}"),
                 Op::ReadInt(d) => write!(text, "%{d} = read_int"),
                 Op::ReadArray(d) => write!(text, "%{d} = read_array"),
                 Op::Length(d, a) => write!(text, "%{d} = array_len %{a}"),
@@ -674,6 +743,7 @@ impl ComputeProgram {
                 Op::Branch(c, yes, no) => write!(text, "branch %{c}, @{yes}, @{no}"),
                 Op::Return(a) => write!(text, "return %{a}"),
                 Op::ReturnList(a) => write!(text, "return_list %{a}"),
+                Op::ReturnFloat(a) => write!(text, "return_float %{a}"),
                 Op::Assert(a) => write!(text, "assert %{a}"),
                 Op::Nil(d) => write!(text, "%{d} = list_nil"),
                 Op::Cons(d, a, b) => write!(text, "%{d} = list_cons %{a}, %{b}"),
@@ -709,6 +779,31 @@ impl ComputeProgram {
                 match op {
                     Op::Int(d, value) => registers[*d] = Value::Int(*value),
                     Op::Bool(d, value) => registers[*d] = Value::Bool(*value),
+                    Op::Float(d, bits) => registers[*d] = Value::Float(f64::from_bits(*bits)),
+                    Op::IntToFloat(d, source) => {
+                        registers[*d] = Value::Float(registers[*source].int() as f64)
+                    }
+                    Op::FloatAdd(d, a, b) | Op::FloatDiv(d, a, b) => {
+                        let a = registers[*a].float();
+                        let b = registers[*b].float();
+                        let result = if matches!(op, Op::FloatAdd(..)) {
+                            a + b
+                        } else {
+                            if b == 0.0 {
+                                return Err("floating-point division by zero".into());
+                            }
+                            a / b
+                        };
+                        if !result.is_finite() {
+                            return Err("nonfinite floating-point result".into());
+                        }
+                        registers[*d] = Value::Float(result);
+                    }
+                    Op::ReturnFloat(value) => {
+                        input.finish()?;
+                        let stdout = format!("{}\n", format_float(registers[*value].float()));
+                        return Ok(Some(Execution::Console { stdout }));
+                    }
                     Op::Copy(d, source) => registers[*d] = registers[*source].clone(),
                     Op::Div(d, a, b) | Op::Rem(d, a, b) => {
                         let a = registers[*a].int();
@@ -904,6 +999,7 @@ enum Value {
     Empty,
     Int(i64),
     Bool(bool),
+    Float(f64),
     Array(Rc<Vec<i64>>),
     Map(usize),
     List(Option<usize>),
@@ -929,6 +1025,13 @@ fn append_node(nodes: &mut Vec<ListNode>, value: i64, tail: Option<usize>) -> us
     index
 }
 impl Value {
+    fn float(&self) -> f64 {
+        if let Self::Float(value) = self {
+            *value
+        } else {
+            unreachable!("validated initialized Float")
+        }
+    }
     fn list(&self) -> Option<usize> {
         if let Self::List(value) = self {
             *value
@@ -1011,4 +1114,14 @@ impl Input<'_> {
         }
         Ok(())
     }
+}
+
+// Match the native C %.16e contract: 17 significant digits, preserving signed
+// zero, with an explicit exponent sign and at least two exponent digits.
+fn format_float(value: f64) -> String {
+    debug_assert!(value.is_finite());
+    let scientific = format!("{value:.16e}");
+    let (mantissa, exponent) = scientific.split_once('e').expect("scientific float format");
+    let exponent: i32 = exponent.parse().expect("scientific exponent");
+    format!("{mantissa}e{exponent:+03}")
 }

@@ -103,7 +103,7 @@ fn binary_examples_and_inspection_are_exact_and_reject_text_source() {
     let app = Harness::new();
     let (status, examples) = app.call("GET", "/api/examples", json!({}));
     assert_eq!(status, 200);
-    assert_eq!(examples["examples"].as_array().unwrap().len(), 5);
+    assert_eq!(examples["examples"].as_array().unwrap().len(), 6);
     assert!(examples["examples"][0].get("source").is_none());
     let (status, bytes) = app.raw(
         "GET",
@@ -283,6 +283,57 @@ fn linked_list_example_runs_data_changes_and_recovers_without_rebuilding() {
         "[0,1]\n"
     );
 }
+#[test]
+fn median_example_returns_fractional_output_without_rebuilding() {
+    let app = Harness::new();
+    let (_, metadata) = app.call("GET", "/api/examples", json!({}));
+    assert_eq!(metadata["examples"][5]["input"], "2 1 3 1 2\n");
+    let (status, source) = app.raw(
+        "GET",
+        "/api/examples/median-two-sorted-arrays",
+        b"",
+        "application/octet-stream",
+        "",
+    );
+    assert_eq!(status, 200);
+    assert_eq!(
+        source,
+        include_bytes!("../examples/median-two-sorted-arrays.rvb")
+    );
+    let (status, inspection) = app.binary("/api/inspect", &source);
+    assert_eq!(status, 200);
+    assert!(
+        inspection["inspection"]["ir"]
+            .as_str()
+            .unwrap()
+            .contains("Float")
+    );
+    let id = app.build(&source);
+    for (data, expected) in [
+        ("2 1 3 1 2", "2.0000000000000000e+00\n"),
+        ("2 1 2 2 3 4", "2.5000000000000000e+00\n"),
+        ("0 2 -2 1", "-5.0000000000000000e-01\n"),
+    ] {
+        let (status, result) = app.call("POST", "/api/run", json!({"build_id":id,"input":data}));
+        assert_eq!(status, 200, "{result}");
+        assert_eq!(result["stdout"], expected);
+        assert_eq!(
+            app.call("GET", "/api/status", json!({})).1["build"]["id"],
+            id
+        );
+    }
+    assert_eq!(
+        app.call("POST", "/api/run", json!({"build_id":id,"input":"0 0"}))
+            .0,
+        400
+    );
+    assert_eq!(
+        app.call("POST", "/api/run", json!({"build_id":id,"input":"0 1 9"}))
+            .1["stdout"],
+        "9.0000000000000000e+00\n"
+    );
+}
+
 #[test]
 fn binary_server_lifecycle_and_independent_running_artifact() {
     let app = Harness::new();

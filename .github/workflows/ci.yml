@@ -23,6 +23,8 @@ jobs:
         run: |
           python3 tests/native_runtime/run.py
           python3 tests/native_runtime/run.py --sanitize undefined
+      - name: Comparative benchmark correctness smoke
+        run: python3 scripts/median_benchmark.py --rivet target/debug/rivet --samples 1 --cases-per-group 2 --target-ms 1 --report .rivet/ci-median-benchmark.json
       - name: Install browser test dependencies
         run: |
           npm ci

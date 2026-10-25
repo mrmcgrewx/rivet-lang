@@ -157,6 +157,29 @@ def list_checks(executable):
     assert result.returncode == 1 and b"cannot write compute output" in result.stderr
 
 
+def float_checks(executable):
+    for mode, expected in [("half", b"2.5000000000000000e+00\n"),
+                           ("negative-zero", b"-0.0000000000000000e+00\n"),
+                           ("max", b"1.7976931348623157e+308\n"),
+                           ("subnormal", b"4.9406564584124654e-324\n")]:
+        result = subprocess.run([executable, mode], input=b" \t\n", capture_output=True, timeout=10)
+        assert result.returncode == 0 and result.stdout == expected and not result.stderr, result
+    for mode, data, message in [("infinity", b"", b"nonfinite Float output"),
+                                ("nan", b"", b"nonfinite Float output"),
+                                ("half", b"1", b"unconsumed values"),
+                                ("half", b" " * 262145, b"input exceeds 262144 bytes")]:
+        result = subprocess.run([executable, mode], input=data, capture_output=True, timeout=10)
+        assert result.returncode == 1 and not result.stdout and message in result.stderr, result
+    read_end, write_end = os.pipe()
+    os.close(read_end)
+    try:
+        result = subprocess.run([executable, "half"], input=b"", stdout=write_end,
+                                stderr=subprocess.PIPE, timeout=10)
+    finally:
+        os.close(write_end)
+    assert result.returncode == 1 and b"cannot write compute output" in result.stderr
+
+
 @contextlib.contextmanager
 def server(executable, port=0, control=None):
     env = os.environ.copy()
@@ -286,7 +309,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sanitize", nargs="?", const="address,undefined")
     args = parser.parse_args()
-    profiles = [("baseline", ["-O0"]), ("size", ["-Oz"])]
+    profiles = [("baseline", ["-O0"]), ("size", ["-Oz"]), ("speed", ["-O3"])]
     if args.sanitize:
         profiles = [(args.sanitize.replace(",", "-"), ["-O1", "-g", f"-fsanitize={args.sanitize}",
                                     "-fno-omit-frame-pointer", "-fno-sanitize-recover=all"])]
@@ -296,15 +319,18 @@ def main():
             http = str(Path(build) / f"server-{name}")
             compute = str(Path(build) / f"compute-{name}")
             lists = str(Path(build) / f"lists-{name}")
+            floats = str(Path(build) / f"floats-{name}")
             compile_program("values.c", values, flags)
             compile_program("server.c", http, flags, link_runtime=True)
             compile_program("compute.c", compute, flags)
             compile_program("lists.c", lists, flags)
+            compile_program("floats.c", floats, flags)
             values_checks(values)
             compute_checks(compute)
             list_checks(lists)
+            float_checks(floats)
             http_checks(http)
-            print(f"{name}: native values, compute input/arrays/maps/lists/limits, HTTP framing, shutdown and rebind passed", flush=True)
+            print(f"{name}: native values, compute input/arrays/maps/lists/floats/limits, HTTP framing, shutdown and rebind passed", flush=True)
 
 
 if __name__ == "__main__":

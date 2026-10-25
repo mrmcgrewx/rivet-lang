@@ -256,8 +256,9 @@
     const exampleHelp = {
       "two-sum": "two-sum-input-help",
       "add-two-numbers": "add-two-numbers-input-help",
+      "median-two-sorted-arrays": "median-input-help",
     }[state.selectedExample];
-    for (const id of ["two-sum-input-help", "add-two-numbers-input-help"])
+    for (const id of ["two-sum-input-help", "add-two-numbers-input-help", "median-input-help"])
       $(id).hidden = id !== exampleHelp;
     $("runtime-input").setAttribute("aria-describedby",
       `runtime-input-help${exampleHelp ? ` ${exampleHelp}` : ""}`);
@@ -748,6 +749,7 @@
         number.textContent = String(index + 1).padStart(2, "0");
         number.setAttribute("aria-hidden", "true");
         const name = document.createElement("span");
+        name.className = "example-name";
         name.textContent = example.name;
         const arrow = document.createElement("span");
         arrow.className = "example-arrow";

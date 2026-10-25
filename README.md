@@ -8,7 +8,7 @@ Rivet programs are authored as **binary `.rvb` source files**. Numeric opcodes, 
 
 A local browser workbench provides the human interface: decode the source, inspect its bytes, edit values, build, and run. The readable view is generated from the binary file. JSON and textual assembly are not required source formats.
 
-**Status:** experimental prototype. Binary programs support console output, local HTTP services, and computations with runtime input, loops, arrays, integer maps and linked lists. Native output targets **macOS on Apple Silicon**. AI-generation reliability and performance competitiveness remain research questions; the [capability roadmap](docs/ROADMAP.md) makes those goals explicit.
+**Status:** experimental prototype. Binary programs support console output, local HTTP services, and computations with runtime input, loops, arrays, integer maps, linked lists and floating-point values. Native output targets **macOS on Apple Silicon**. AI-generation reliability and broad performance competitiveness remain research questions; the [capability roadmap](docs/ROADMAP.md) makes those goals explicit.
 
 ## Source is binary; output is native
 
@@ -112,6 +112,18 @@ Input contains two count-prefixed lists: `3 2 4 3` is `[2,4,3]` (342), and `3 5 
 
 The program traverses nodes, carries digits and constructs the result in native control flow. It runs in O(max(m,n)) time. This exercise adds general linked-list operations, typed reference copying, checked division/remainder and source assertions; none is specific to addition. See the [algorithm and tradeoffs](docs/ADD-TWO-NUMBERS.md).
 
+### Median of Two Sorted Arrays: logarithmic search and fractional results
+
+The **803-byte, 81-instruction** [`median-two-sorted-arrays.rvb`](examples/median-two-sorted-arrays.rvb) searches for the middle partition without merging the arrays:
+
+```sh
+./target/release/rivet build examples/median-two-sorted-arrays.rvb -o ./median --profile speed
+printf '2 1 2 2 3 4\n' | ./median
+# 2.5000000000000000e+00 (2.5)
+```
+
+Input is two count-prefixed sorted arrays. The workbench has the same example and accepts different inputs using one build. Search takes O(log(min(m,n)+1)) time and O(1) auxiliary storage; reading/storing stdin adds O(m+n). Sortedness and the problem's element range are caller preconditions. This exercise adds reusable finite binary64 values, conversions, arithmetic and scalar output. See the [algorithm walkthrough](docs/MEDIAN.md) and [runtime/memory comparison method](docs/MEDIAN-BENCHMARK-METHOD.md).
+
 ### Standalone HTTP server
 
 The 64-byte [`server.rvb`](examples/server.rvb) defines its values, JSON object, port, route, and response status in binary:
@@ -139,7 +151,7 @@ Rivet has two versioned binary forms. RVB1 is a typed, single-assignment instruc
 
 RVB1's four types are `Text`, signed 64-bit `Int`, `Bool`, and `Json`. Seven numeric operations create literals, concatenate text, add integers with overflow checks, convert scalar values to text, and construct objects. An entry record selects console output or an HTTP service. Instructions are evaluated in order, including unused instructions that can fail.
 
-RVB2 adds a computation entry with declared mutable registers, `IntArray`, `IntMap` and `IntList`, integer input, comparisons, checked arithmetic, copies, assertions, jumps and conditional branches. Its validator checks that each register has been assigned on every path reaching a read, including across loops. Programs return an integer array or linked list. Linked lists have immutable nodes and shared tails; maps are mutable and copied handles preserve aliasing. Existing RVB1 files keep their original encoding and behavior.
+RVB2 adds a computation entry with declared mutable registers, `IntArray`, `IntMap`, `IntList` and finite binary64 `Float`, integer input, comparisons, checked arithmetic, copies, assertions, jumps and conditional branches. Its validator checks that each register has been assigned on every path reaching a read, including across loops. Programs return an integer array, linked list or floating-point scalar. Linked lists have immutable nodes and shared tails; maps are mutable and copied handles preserve aliasing. Existing RVB1 files keep their original encoding and behavior.
 
 The format makes structure explicit and compact. Fixed-width numeric references and length-delimited records support mechanical construction, inspection, and edits. The decoder checks the version, lengths, types, references, UTF-8, canonical field ordering, and resource bounds before native compilation. There is no intermediate JSON source document, embedded text program, or required assembler.
 
@@ -161,7 +173,7 @@ Use `./target/release/rivet` from the checkout, or place the binary on PATH. All
 
 | Command | Behavior |
 | --- | --- |
-| `rivet build FILE -o PATH [--profile size\|baseline]` | Compile binary source to a native executable and inspection files. |
+| `rivet build FILE -o PATH [--profile size\|baseline\|speed]` | Compile binary source to a native executable and inspection files. |
 | `rivet run FILE` | Build a persistent native artifact and launch it. |
 | `rivet inspect FILE` | Decode and validate binary source, then print a readable view. |
 | `rivet check FILE` | Validate source and print typed IR; equivalent inspection path. |
@@ -188,9 +200,9 @@ npx playwright install chromium
 npm test
 ```
 
-The workbench itself needs no Node.js or frontend build. Binary tests cover malformed/truncated inputs, canonical roundtrips, types, control flow and definite assignment, decoded offsets, native/reference agreement, binary import/export/editing, and independent executables. Two Sum tests include a seeded oracle corpus and 10,000 elements. Add Two Numbers tests use an independent arbitrary-precision oracle, 100-digit inputs and generic linked-data/aliasing/arithmetic cases. Both use baseline and size compiler profiles. See [Add Two Numbers validation](docs/ADD-TWO-NUMBERS-VALIDATION.md), [Two Sum validation](docs/TWO-SUM-VALIDATION.md), and the earlier [RVB1 validation](docs/BINARY-VALIDATION.md).
+The workbench itself needs no Node.js or frontend build. Binary tests cover malformed/truncated inputs, canonical roundtrips, types, control flow and definite assignment, decoded offsets, native/reference agreement, binary import/export/editing, and independent executables. Two Sum tests include a seeded oracle corpus and 10,000 elements. Add Two Numbers tests use an independent arbitrary-precision oracle, 100-digit inputs and generic linked-data/aliasing/arithmetic cases. Both use baseline and size compiler profiles. Median adds a sorted-union oracle, exhaustive small inputs and generic floating-point checks under all three profiles. See [Median validation](docs/MEDIAN-VALIDATION.md), [Add Two Numbers validation](docs/ADD-TWO-NUMBERS-VALIDATION.md), [Two Sum validation](docs/TWO-SUM-VALIDATION.md), and the earlier [RVB1 validation](docs/BINARY-VALIDATION.md).
 
-The native optimization objective remains executable file size. `size` uses Clang `-Oz` plus linker dead stripping; `baseline` uses identical generated LLVM and support at `-O0`. Run `python3 scripts/native_benchmark.py` after building the release compiler to compare the RVB1 examples. [Earlier RVB1 measurements](docs/BINARY-BENCHMARK.json), before the RVB2 runtime extension, showed 5.4% smaller Hello, 0.65% smaller server, and a tie for computed output, with slower builds. These historical small-workload results do not establish current sizes or AI-generation/binary-decoding efficiency.
+Native profiles offer explicit tradeoffs: default `size` uses Clang `-Oz` plus linker dead stripping, `baseline` uses identical generated LLVM and support at `-O0`, and `speed` uses `-O3` plus dead stripping. All preserve semantic/runtime checks. Run `python3 scripts/median_benchmark.py` after building the release compiler for median runtime and peak-memory comparisons with C and Python; see the [measurement method](docs/MEDIAN-BENCHMARK-METHOD.md). Run `python3 scripts/native_benchmark.py` for the original RVB1 file-size comparison. [Earlier RVB1 measurements](docs/BINARY-BENCHMARK.json) remain historical and do not establish current sizes or broader language efficiency.
 
 ## Scope
 
@@ -204,6 +216,8 @@ HTTP is a local experimental subset: IPv4 loopback, exact GET routes, sequential
 - [Computation format (RVB2)](docs/COMPUTE-FORMAT.md)
 - [Two Sum algorithm](docs/TWO-SUM.md)
 - [Add Two Numbers algorithm](docs/ADD-TWO-NUMBERS.md)
+- [Median algorithm](docs/MEDIAN.md)
+- [Comparative benchmark method](docs/MEDIAN-BENCHMARK-METHOD.md)
 - [Capability and performance roadmap](docs/ROADMAP.md)
 - [Language semantics](docs/LANGUAGE.md)
 - [Architecture and runtime boundary](docs/ARCHITECTURE.md)

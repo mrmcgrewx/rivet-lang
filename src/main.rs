@@ -46,7 +46,7 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.is_empty() || args == ["--help"] || args == ["help"] {
         println!(
-            "Rivet — binary source native compiler (RVB1/RVB2)\n\n  rivet build FILE -o PATH [--profile size|baseline]\n                            Build a standalone executable and inspectable LLVM/assembly\n  rivet run FILE            Build and launch native executable\n  rivet interpret FILE      Run the reference interpreter\n  rivet inspect FILE        Decode binary source to a readable view\n  rivet check FILE          Validate and print typed register IR\n  rivet ui [--port PORT]    Start local workbench (default 7331)\n\nSource files are binary RVB (.rvb). JSON/text source is not accepted.\nCompute programs read runtime data from stdin (finish with EOF).\nTwo Sum input: count, array elements, target; e.g. '4 2 7 11 15 9'.\nBuild requires Clang/Xcode command-line tools. Executables need only system libraries.\nAll listeners bind 127.0.0.1; port 0 chooses a free port. Ctrl-C stops managed servers."
+            "Rivet — binary source native compiler (RVB1/RVB2)\n\n  rivet build FILE -o PATH [--profile size|baseline|speed]\n                            Build a standalone executable and inspectable LLVM/assembly\n  rivet run FILE            Build and launch native executable\n  rivet interpret FILE      Run the reference interpreter\n  rivet inspect FILE        Decode binary source to a readable view\n  rivet check FILE          Validate and print typed register IR\n  rivet ui [--port PORT]    Start local workbench (default 7331)\n\nSource files are binary RVB (.rvb). JSON/text source is not accepted.\nCompute programs read runtime data from stdin (finish with EOF).\nTwo Sum input: count, array elements, target; e.g. '4 2 7 11 15 9'.\nBuild requires Clang/Xcode command-line tools. Executables need only system libraries.\nAll listeners bind 127.0.0.1; port 0 chooses a free port. Ctrl-C stops managed servers."
         );
         return Ok(());
     }
@@ -84,7 +84,8 @@ fn run() -> Result<(), String> {
                     }
                     _ => {
                         return Err(
-                            "Usage: rivet build FILE -o PATH [--profile size|baseline]".into()
+                            "Usage: rivet build FILE -o PATH [--profile size|baseline|speed]"
+                                .into(),
                         );
                     }
                 }

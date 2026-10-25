@@ -174,6 +174,124 @@ def add_two_numbers():
     return b'RVB\0' + pack('<HHHBBI', 2, 0, len(records), 3, 0, len(body)) + body
 
 
+def median_two_sorted_arrays():
+    # Array handles 0..2, integer search state 3..22/24..25, Bool 23/31,
+    # Float results 26..30. Labels exist only in this byte-writing tool.
+    types = bytes([5, 5, 5] + [2] * 20 + [3, 2, 2] + [8] * 5 + [3])
+    records, labels, fixups = [], {}, []
+
+    def mark(name):
+        labels[name] = len(records)
+
+    def op(code, result, *operands):
+        payload = bytearray()
+        for operand in operands:
+            if isinstance(operand, str):
+                fixups.append((len(records), len(payload), operand))
+                operand = 0
+            payload += pack('<H', operand)
+        records.append((code, result, payload))
+
+    def const(destination, value):
+        records.append((0x02, 2, bytearray(pack('<Hq', destination, value))))
+
+    op(0x31, 5, 0)
+    op(0x31, 5, 1)
+    op(0x32, 2, 3, 0)
+    op(0x32, 2, 4, 1)
+    for destination, value in [(6, 0), (7, 1), (8, 2), (9, 1001),
+                               (20, -(2**63)), (21, 2**63 - 1)]:
+        const(destination, value)
+    records.append((0x04, 8, bytearray(pack('<Hd', 29, 2.0))))
+    records.append((0x03, 3, bytearray(pack('<HB', 31, 0))))
+    for length in [3, 4]:
+        op(0x15, 3, 23, length, 9)
+        op(0x54, 0, 23)
+    op(0x11, 2, 14, 3, 4)
+    op(0x15, 3, 23, 6, 14)
+    op(0x54, 0, 23)
+    op(0x15, 3, 23, 4, 3)
+    op(0x51, 0, 23, 'swap', 'setup')
+    mark('swap')
+    for destination, source in [(2, 0), (0, 1), (1, 2)]:
+        op(0x16, 5, destination, source)
+    for destination, source in [(5, 3), (3, 4), (4, 5)]:
+        op(0x16, 2, destination, source)
+    mark('setup')
+    op(0x16, 2, 10, 6)
+    op(0x16, 2, 11, 3)
+    op(0x11, 2, 15, 14, 7)
+    op(0x17, 2, 15, 15, 8)
+    mark('search')
+    op(0x15, 3, 23, 11, 10)
+    op(0x51, 0, 23, 'invalid', 'partition')
+    mark('partition')
+    op(0x11, 2, 12, 10, 11)
+    op(0x17, 2, 12, 12, 8)
+    op(0x13, 2, 13, 15, 12)
+    for destination, source in [(16, 20), (17, 21), (18, 20), (19, 21)]:
+        op(0x16, 2, destination, source)
+    # Guard all four edge loads; empty arrays and endpoint cuts never index out.
+    for label, array, cut, edge, bound, left in [
+        ('al', 0, 12, 16, 6, True), ('ar', 0, 12, 17, 3, False),
+        ('bl', 1, 13, 18, 6, True), ('br', 1, 13, 19, 4, False),
+    ]:
+        op(0x14, 3, 23, cut, bound)
+        op(0x51, 0, 23, label + '_done', label + '_load')
+        mark(label + '_load')
+        if left:
+            op(0x13, 2, 22, cut, 7)
+            op(0x33, 2, edge, array, 22)
+        else:
+            op(0x33, 2, edge, array, cut)
+        mark(label + '_done')
+    op(0x15, 3, 23, 19, 16)
+    op(0x51, 0, 23, 'move_left', 'check_right')
+    mark('move_left')
+    op(0x13, 2, 11, 12, 7)
+    op(0x50, 0, 'search')
+    mark('check_right')
+    op(0x15, 3, 23, 17, 18)
+    op(0x51, 0, 23, 'move_right', 'found')
+    mark('move_right')
+    op(0x11, 2, 10, 12, 7)
+    op(0x50, 0, 'search')
+    mark('found')
+    op(0x16, 2, 24, 16)
+    op(0x15, 3, 23, 16, 18)
+    op(0x51, 0, 23, 'left_b', 'parity')
+    mark('left_b')
+    op(0x16, 2, 24, 18)
+    mark('parity')
+    op(0x19, 8, 26, 24)
+    op(0x18, 2, 22, 14, 8)
+    op(0x14, 3, 23, 22, 6)
+    op(0x51, 0, 23, 'even', 'odd')
+    mark('odd')
+    op(0x55, 0, 26)
+    mark('even')
+    op(0x16, 2, 25, 17)
+    op(0x15, 3, 23, 19, 17)
+    op(0x51, 0, 23, 'right_b', 'mean')
+    mark('right_b')
+    op(0x16, 2, 25, 19)
+    mark('mean')
+    op(0x19, 8, 27, 25)
+    op(0x1a, 8, 28, 26, 27)
+    op(0x1b, 8, 30, 28, 29)
+    op(0x55, 0, 30)
+    mark('invalid')
+    op(0x54, 0, 31)
+    op(0x50, 0, 'invalid')  # Satisfy structural CFG even after failing assertion.
+
+    for index, offset, label in fixups:
+        records[index][2][offset:offset + 2] = pack('<H', labels[label])
+    body = pack('<H', len(types)) + types
+    body += b''.join(record(code, result, payload) for code, result, payload in records)
+    body += pack('<H', 0)
+    return b'RVB\0' + pack('<HHHBBI', 2, 0, len(records), 3, 0, len(body)) + body
+
+
 def main():
     # Hand-authored source bytes: three records (text, text, concat), console r2.
     hello = bytes.fromhex(
@@ -191,7 +309,8 @@ def main():
         obj(('answer', 2), ('ready', 6)), obj(('details', 7), ('message', 5)),
     ], 2, http(0, '/computed', 200, 8))
     for name, source in [('hello', hello), ('server', server), ('computed', computed),
-                         ('two-sum', two_sum()), ('add-two-numbers', add_two_numbers())]:
+                         ('two-sum', two_sum()), ('add-two-numbers', add_two_numbers()),
+                         ('median-two-sorted-arrays', median_two_sorted_arrays())]:
         path = ROOT / 'examples' / f'{name}.rvb'
         path.write_bytes(source)
         print(f'{path.relative_to(ROOT)}: {len(source)} binary source bytes')

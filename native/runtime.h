@@ -35,5 +35,6 @@ int64_t rv2_list_value(void *list);
 void *rv2_list_next(void *list);
 int64_t rv2_list_len(void *list);
 void rv2_return_list(void *list);
+void rv2_return_float(double value);
 
 #endif
