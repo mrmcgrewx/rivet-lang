@@ -1,0 +1,100 @@
+{
+  "trial": "two_sum-rivet",
+  "attempt": 1,
+  "passed": true,
+  "submitted_unix_ns": 1792966096145602000,
+  "files": {
+    "solution.rvb": "57dd96a1d129fcb1450938ba7bc5399d4e9dda9b64fac4322f2a9da2915d979b",
+    "write_solution.py": "6632bdd23aedbf4730cb1df33611328f050b25bb1223f7799c99d042463118b8"
+  },
+  "build": {
+    "ok": true,
+    "logs": [
+      {
+        "command": [
+          "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/rivet-frozen",
+          "build",
+          "/Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/results/trials/two_sum-rivet/attempt-1/solution.rvb",
+          "-o",
+          "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/two_sum-rivet/attempt-1/program",
+          "--profile",
+          "speed"
+        ],
+        "exit_code": 0,
+        "stdout": "Executable: /Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/two_sum-rivet/attempt-1/program\nLLVM IR: /Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/two_sum-rivet/attempt-1/program.ll\nAssembly: /Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/two_sum-rivet/attempt-1/program.s\nBuild metadata: /Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/two_sum-rivet/attempt-1/program.build.json\n34952 bytes \u00b7 arm64-apple-darwin25.5.0 \u00b7 299 ms\n",
+        "stderr": "",
+        "elapsed_ns": 570243458
+      }
+    ],
+    "executable": "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/two_sum-rivet/attempt-1/program",
+    "executable_bytes": 34952
+  },
+  "development": {
+    "passed": 10,
+    "total": 10,
+    "executed": 10,
+    "cases": [
+      {
+        "index": 0,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 229463458
+      },
+      {
+        "index": 1,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3135084
+      },
+      {
+        "index": 2,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3177792
+      },
+      {
+        "index": 3,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2859292
+      },
+      {
+        "index": 4,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2700209
+      },
+      {
+        "index": 5,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2833417
+      },
+      {
+        "index": 6,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2730000
+      },
+      {
+        "index": 7,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2653250
+      },
+      {
+        "index": 8,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3010666
+      },
+      {
+        "index": 9,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3802375
+      }
+    ],
+    "ok": true
+  }
+}

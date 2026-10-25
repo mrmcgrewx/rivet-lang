@@ -1,0 +1,712 @@
+{
+  "format": 1,
+  "source": "actual child session token_count total_token_usage events",
+  "scope": "nine fresh measured workers only; coordinator/harness/review excluded",
+  "counting": "cached input is included in input; reasoning output is included in output; cumulative across calls",
+  "expected_model": "gpt-6-astra",
+  "expected_effort": "xhigh",
+  "trials": [
+    {
+      "id": "add_two_numbers-c",
+      "agent_path": "/root/pilot_add_two_numbers_c",
+      "thread_id": "01a1751c-0fa1-7320-924b-c768c5ef3446",
+      "models": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "started": "2026-10-25T22:08:55.768Z",
+      "completed": "2026-10-25T22:09:35.819Z",
+      "usage": {
+        "input_tokens": 223186,
+        "cached_input_tokens": 218112,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1312,
+        "reasoning_output_tokens": 215,
+        "total_tokens": 224498,
+        "uncached_input_tokens": 5074
+      },
+      "cumulative_usage_observations": [
+        {
+          "timestamp": "2026-10-25T22:09:02.923Z",
+          "input_tokens": 34165,
+          "cached_input_tokens": 33664,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 178,
+          "reasoning_output_tokens": 47,
+          "total_tokens": 34343
+        },
+        {
+          "timestamp": "2026-10-25T22:09:05.423Z",
+          "input_tokens": 68572,
+          "cached_input_tokens": 67840,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 243,
+          "reasoning_output_tokens": 47,
+          "total_tokens": 68815
+        },
+        {
+          "timestamp": "2026-10-25T22:09:16.425Z",
+          "input_tokens": 106634,
+          "cached_input_tokens": 102144,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 726,
+          "reasoning_output_tokens": 179,
+          "total_tokens": 107360
+        },
+        {
+          "timestamp": "2026-10-25T22:09:19.739Z",
+          "input_tokens": 145203,
+          "cached_input_tokens": 140544,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 837,
+          "reasoning_output_tokens": 188,
+          "total_tokens": 146040
+        },
+        {
+          "timestamp": "2026-10-25T22:09:31.839Z",
+          "input_tokens": 183978,
+          "cached_input_tokens": 179072,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1246,
+          "reasoning_output_tokens": 215,
+          "total_tokens": 185224
+        },
+        {
+          "timestamp": "2026-10-25T22:09:35.365Z",
+          "input_tokens": 223186,
+          "cached_input_tokens": 218112,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1312,
+          "reasoning_output_tokens": 215,
+          "total_tokens": 224498
+        }
+      ],
+      "tool_call_count": 5,
+      "command_audit_sha256": "3e19caa6b2d695c58dc9302e65bd3e323cab3b4d19b32b5b7862245821ac31fd"
+    },
+    {
+      "id": "add_two_numbers-rivet",
+      "agent_path": "/root/pilot_add_two_numbers_rivet",
+      "thread_id": "01a1751b-ff2a-7a73-8979-82abd9818651",
+      "models": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "started": "2026-10-25T22:08:51.549Z",
+      "completed": "2026-10-25T22:10:11.592Z",
+      "usage": {
+        "input_tokens": 242394,
+        "cached_input_tokens": 234496,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 3117,
+        "reasoning_output_tokens": 1023,
+        "total_tokens": 245511,
+        "uncached_input_tokens": 7898
+      },
+      "cumulative_usage_observations": [
+        {
+          "timestamp": "2026-10-25T22:08:57.751Z",
+          "input_tokens": 34168,
+          "cached_input_tokens": 33664,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 141,
+          "reasoning_output_tokens": 49,
+          "total_tokens": 34309
+        },
+        {
+          "timestamp": "2026-10-25T22:09:00.450Z",
+          "input_tokens": 72043,
+          "cached_input_tokens": 67840,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 196,
+          "reasoning_output_tokens": 49,
+          "total_tokens": 72239
+        },
+        {
+          "timestamp": "2026-10-25T22:09:43.845Z",
+          "input_tokens": 112732,
+          "cached_input_tokens": 105600,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2271,
+          "reasoning_output_tokens": 901,
+          "total_tokens": 115003
+        },
+        {
+          "timestamp": "2026-10-25T22:09:47.910Z",
+          "input_tokens": 155586,
+          "cached_input_tokens": 148224,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2373,
+          "reasoning_output_tokens": 901,
+          "total_tokens": 157959
+        },
+        {
+          "timestamp": "2026-10-25T22:10:07.111Z",
+          "input_tokens": 198637,
+          "cached_input_tokens": 190976,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 3021,
+          "reasoning_output_tokens": 1023,
+          "total_tokens": 201658
+        },
+        {
+          "timestamp": "2026-10-25T22:10:11.243Z",
+          "input_tokens": 242394,
+          "cached_input_tokens": 234496,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 3117,
+          "reasoning_output_tokens": 1023,
+          "total_tokens": 245511
+        }
+      ],
+      "tool_call_count": 5,
+      "command_audit_sha256": "d0b516b21fe4a0b42a5df7bad58c14f78a5e03202d6eb711d02df637951baf1e"
+    },
+    {
+      "id": "add_two_numbers-rust",
+      "agent_path": "/root/pilot_add_two_numbers_rust",
+      "thread_id": "01a1751c-1ebd-79d2-aad9-815e039f9e0b",
+      "models": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "started": "2026-10-25T22:08:59.694Z",
+      "completed": "2026-10-25T22:09:35.326Z",
+      "usage": {
+        "input_tokens": 188552,
+        "cached_input_tokens": 183680,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1222,
+        "reasoning_output_tokens": 379,
+        "total_tokens": 189774,
+        "uncached_input_tokens": 4872
+      },
+      "cumulative_usage_observations": [
+        {
+          "timestamp": "2026-10-25T22:09:04.902Z",
+          "input_tokens": 34168,
+          "cached_input_tokens": 33664,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 127,
+          "reasoning_output_tokens": 32,
+          "total_tokens": 34295
+        },
+        {
+          "timestamp": "2026-10-25T22:09:17.915Z",
+          "input_tokens": 72088,
+          "cached_input_tokens": 67840,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 768,
+          "reasoning_output_tokens": 349,
+          "total_tokens": 72856
+        },
+        {
+          "timestamp": "2026-10-25T22:09:22.767Z",
+          "input_tokens": 110673,
+          "cached_input_tokens": 106240,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 870,
+          "reasoning_output_tokens": 349,
+          "total_tokens": 111543
+        },
+        {
+          "timestamp": "2026-10-25T22:09:32.178Z",
+          "input_tokens": 149457,
+          "cached_input_tokens": 144768,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1157,
+          "reasoning_output_tokens": 379,
+          "total_tokens": 150614
+        },
+        {
+          "timestamp": "2026-10-25T22:09:34.968Z",
+          "input_tokens": 188552,
+          "cached_input_tokens": 183680,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1222,
+          "reasoning_output_tokens": 379,
+          "total_tokens": 189774
+        }
+      ],
+      "tool_call_count": 4,
+      "command_audit_sha256": "11c14856d7f8a600b7602606f56a177261e85b9a7b87e19852c5553439e66d91"
+    },
+    {
+      "id": "median-c",
+      "agent_path": "/root/pilot_median_c",
+      "thread_id": "01a1751d-7835-7483-801f-1b1851285d37",
+      "models": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "started": "2026-10-25T22:10:28.075Z",
+      "completed": "2026-10-25T22:11:40.293Z",
+      "usage": {
+        "input_tokens": 230597,
+        "cached_input_tokens": 225280,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 2470,
+        "reasoning_output_tokens": 930,
+        "total_tokens": 233067,
+        "uncached_input_tokens": 5317
+      },
+      "cumulative_usage_observations": [
+        {
+          "timestamp": "2026-10-25T22:10:33.522Z",
+          "input_tokens": 34161,
+          "cached_input_tokens": 33664,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 144,
+          "reasoning_output_tokens": 49,
+          "total_tokens": 34305
+        },
+        {
+          "timestamp": "2026-10-25T22:10:36.606Z",
+          "input_tokens": 72138,
+          "cached_input_tokens": 67840,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 205,
+          "reasoning_output_tokens": 58,
+          "total_tokens": 72343
+        },
+        {
+          "timestamp": "2026-10-25T22:11:16.022Z",
+          "input_tokens": 110383,
+          "cached_input_tokens": 105728,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1667,
+          "reasoning_output_tokens": 840,
+          "total_tokens": 112050
+        },
+        {
+          "timestamp": "2026-10-25T22:11:19.102Z",
+          "input_tokens": 150114,
+          "cached_input_tokens": 145280,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1762,
+          "reasoning_output_tokens": 840,
+          "total_tokens": 151876
+        },
+        {
+          "timestamp": "2026-10-25T22:11:36.276Z",
+          "input_tokens": 190033,
+          "cached_input_tokens": 184960,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2383,
+          "reasoning_output_tokens": 930,
+          "total_tokens": 192416
+        },
+        {
+          "timestamp": "2026-10-25T22:11:39.944Z",
+          "input_tokens": 230597,
+          "cached_input_tokens": 225280,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2470,
+          "reasoning_output_tokens": 930,
+          "total_tokens": 233067
+        }
+      ],
+      "tool_call_count": 5,
+      "command_audit_sha256": "62bac3f1cc2acd8f4b04d882db4ffed0cf2ebe802c0c33f5bd9e3cb4dd1a86d6"
+    },
+    {
+      "id": "median-rivet",
+      "agent_path": "/root/pilot_median_rivet",
+      "thread_id": "01a1751d-6453-7c30-a190-047e1ec10318",
+      "models": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "started": "2026-10-25T22:10:22.988Z",
+      "completed": "2026-10-25T22:11:57.790Z",
+      "usage": {
+        "input_tokens": 244101,
+        "cached_input_tokens": 236416,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 3861,
+        "reasoning_output_tokens": 1221,
+        "total_tokens": 247962,
+        "uncached_input_tokens": 7685
+      },
+      "cumulative_usage_observations": [
+        {
+          "timestamp": "2026-10-25T22:10:28.184Z",
+          "input_tokens": 34164,
+          "cached_input_tokens": 33664,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 135,
+          "reasoning_output_tokens": 45,
+          "total_tokens": 34299
+        },
+        {
+          "timestamp": "2026-10-25T22:10:30.528Z",
+          "input_tokens": 71926,
+          "cached_input_tokens": 67840,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 188,
+          "reasoning_output_tokens": 45,
+          "total_tokens": 72114
+        },
+        {
+          "timestamp": "2026-10-25T22:11:30.948Z",
+          "input_tokens": 112500,
+          "cached_input_tokens": 105472,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 3024,
+          "reasoning_output_tokens": 1079,
+          "total_tokens": 115524
+        },
+        {
+          "timestamp": "2026-10-25T22:11:38.672Z",
+          "input_tokens": 155967,
+          "cached_input_tokens": 148736,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 3219,
+          "reasoning_output_tokens": 1174,
+          "total_tokens": 159186
+        },
+        {
+          "timestamp": "2026-10-25T22:11:53.434Z",
+          "input_tokens": 199724,
+          "cached_input_tokens": 192256,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 3781,
+          "reasoning_output_tokens": 1221,
+          "total_tokens": 203505
+        },
+        {
+          "timestamp": "2026-10-25T22:11:57.442Z",
+          "input_tokens": 244101,
+          "cached_input_tokens": 236416,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 3861,
+          "reasoning_output_tokens": 1221,
+          "total_tokens": 247962
+        }
+      ],
+      "tool_call_count": 5,
+      "command_audit_sha256": "24b1bebe9c11394f19f56dfe48640036dde2f82799966246bd01a47efc73a213"
+    },
+    {
+      "id": "median-rust",
+      "agent_path": "/root/pilot_median_rust",
+      "thread_id": "01a1751d-8a7a-7022-ac9a-67786bd6cbb2",
+      "models": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "started": "2026-10-25T22:10:32.752Z",
+      "completed": "2026-10-25T22:11:24.081Z",
+      "usage": {
+        "input_tokens": 188925,
+        "cached_input_tokens": 184064,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1761,
+        "reasoning_output_tokens": 612,
+        "total_tokens": 190686,
+        "uncached_input_tokens": 4861
+      },
+      "cumulative_usage_observations": [
+        {
+          "timestamp": "2026-10-25T22:10:38.091Z",
+          "input_tokens": 34164,
+          "cached_input_tokens": 33664,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 124,
+          "reasoning_output_tokens": 36,
+          "total_tokens": 34288
+        },
+        {
+          "timestamp": "2026-10-25T22:11:01.230Z",
+          "input_tokens": 71868,
+          "cached_input_tokens": 67712,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1117,
+          "reasoning_output_tokens": 502,
+          "total_tokens": 72985
+        },
+        {
+          "timestamp": "2026-10-25T22:11:04.847Z",
+          "input_tokens": 110589,
+          "cached_input_tokens": 106240,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1215,
+          "reasoning_output_tokens": 502,
+          "total_tokens": 111804
+        },
+        {
+          "timestamp": "2026-10-25T22:11:20.214Z",
+          "input_tokens": 149503,
+          "cached_input_tokens": 144896,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1699,
+          "reasoning_output_tokens": 612,
+          "total_tokens": 151202
+        },
+        {
+          "timestamp": "2026-10-25T22:11:23.699Z",
+          "input_tokens": 188925,
+          "cached_input_tokens": 184064,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1761,
+          "reasoning_output_tokens": 612,
+          "total_tokens": 190686
+        }
+      ],
+      "tool_call_count": 4,
+      "command_audit_sha256": "3213e530188c338f05b22c96f24393f65ff66a6c7cfba1ece3cd4b0340991179"
+    },
+    {
+      "id": "two_sum-c",
+      "agent_path": "/root/pilot_two_sum_c",
+      "thread_id": "01a1751a-d658-73c1-b1ee-73273d630708",
+      "models": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "started": "2026-10-25T22:07:35.568Z",
+      "completed": "2026-10-25T22:08:43.741Z",
+      "usage": {
+        "input_tokens": 228870,
+        "cached_input_tokens": 223616,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 2028,
+        "reasoning_output_tokens": 802,
+        "total_tokens": 230898,
+        "uncached_input_tokens": 5254
+      },
+      "cumulative_usage_observations": [
+        {
+          "timestamp": "2026-10-25T22:07:40.942Z",
+          "input_tokens": 34162,
+          "cached_input_tokens": 33664,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 120,
+          "reasoning_output_tokens": 30,
+          "total_tokens": 34282
+        },
+        {
+          "timestamp": "2026-10-25T22:07:44.668Z",
+          "input_tokens": 71929,
+          "cached_input_tokens": 67712,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 171,
+          "reasoning_output_tokens": 30,
+          "total_tokens": 72100
+        },
+        {
+          "timestamp": "2026-10-25T22:08:23.399Z",
+          "input_tokens": 109953,
+          "cached_input_tokens": 105344,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1475,
+          "reasoning_output_tokens": 742,
+          "total_tokens": 111428
+        },
+        {
+          "timestamp": "2026-10-25T22:08:28.119Z",
+          "input_tokens": 149305,
+          "cached_input_tokens": 144512,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1623,
+          "reasoning_output_tokens": 750,
+          "total_tokens": 150928
+        },
+        {
+          "timestamp": "2026-10-25T22:08:38.704Z",
+          "input_tokens": 188899,
+          "cached_input_tokens": 183808,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1976,
+          "reasoning_output_tokens": 802,
+          "total_tokens": 190875
+        },
+        {
+          "timestamp": "2026-10-25T22:08:43.400Z",
+          "input_tokens": 228870,
+          "cached_input_tokens": 223616,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2028,
+          "reasoning_output_tokens": 802,
+          "total_tokens": 230898
+        }
+      ],
+      "tool_call_count": 5,
+      "command_audit_sha256": "e86a5d5d53c8e486d50739441d9c61d0fe147183f223de666b30fe71eaba71f2"
+    },
+    {
+      "id": "two_sum-rivet",
+      "agent_path": "/root/pilot_two_sum_rivet",
+      "thread_id": "01a1751a-c474-71a1-83d5-e339645f7900",
+      "models": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "started": "2026-10-25T22:07:31.003Z",
+      "completed": "2026-10-25T22:08:45.246Z",
+      "usage": {
+        "input_tokens": 240322,
+        "cached_input_tokens": 222336,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 2710,
+        "reasoning_output_tokens": 750,
+        "total_tokens": 243032,
+        "uncached_input_tokens": 17986
+      },
+      "cumulative_usage_observations": [
+        {
+          "timestamp": "2026-10-25T22:07:37.142Z",
+          "input_tokens": 34165,
+          "cached_input_tokens": 23552,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 135,
+          "reasoning_output_tokens": 42,
+          "total_tokens": 34300
+        },
+        {
+          "timestamp": "2026-10-25T22:07:39.896Z",
+          "input_tokens": 71974,
+          "cached_input_tokens": 57728,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 189,
+          "reasoning_output_tokens": 42,
+          "total_tokens": 72163
+        },
+        {
+          "timestamp": "2026-10-25T22:08:11.285Z",
+          "input_tokens": 112597,
+          "cached_input_tokens": 95360,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1659,
+          "reasoning_output_tokens": 542,
+          "total_tokens": 114256
+        },
+        {
+          "timestamp": "2026-10-25T22:08:17.022Z",
+          "input_tokens": 154748,
+          "cached_input_tokens": 137216,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1812,
+          "reasoning_output_tokens": 550,
+          "total_tokens": 156560
+        },
+        {
+          "timestamp": "2026-10-25T22:08:39.466Z",
+          "input_tokens": 197145,
+          "cached_input_tokens": 179328,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2568,
+          "reasoning_output_tokens": 703,
+          "total_tokens": 199713
+        },
+        {
+          "timestamp": "2026-10-25T22:08:45.243Z",
+          "input_tokens": 240322,
+          "cached_input_tokens": 222336,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 2710,
+          "reasoning_output_tokens": 750,
+          "total_tokens": 243032
+        }
+      ],
+      "tool_call_count": 5,
+      "command_audit_sha256": "4a5fd7b540cd9fc2fc4f995400406b38d8016f25ef2b988de335e9921308e07d"
+    },
+    {
+      "id": "two_sum-rust",
+      "agent_path": "/root/pilot_two_sum_rust",
+      "thread_id": "01a1751a-e5bc-7111-9c0c-a197b65d3a9f",
+      "models": [
+        {
+          "model": "gpt-6-astra",
+          "effort": "xhigh"
+        }
+      ],
+      "started": "2026-10-25T22:07:39.501Z",
+      "completed": "2026-10-25T22:08:18.708Z",
+      "usage": {
+        "input_tokens": 225561,
+        "cached_input_tokens": 220544,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1103,
+        "reasoning_output_tokens": 208,
+        "total_tokens": 226664,
+        "uncached_input_tokens": 5017
+      },
+      "cumulative_usage_observations": [
+        {
+          "timestamp": "2026-10-25T22:07:46.470Z",
+          "input_tokens": 34165,
+          "cached_input_tokens": 33664,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 129,
+          "reasoning_output_tokens": 38,
+          "total_tokens": 34294
+        },
+        {
+          "timestamp": "2026-10-25T22:07:53.964Z",
+          "input_tokens": 71922,
+          "cached_input_tokens": 67840,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 456,
+          "reasoning_output_tokens": 164,
+          "total_tokens": 72378
+        },
+        {
+          "timestamp": "2026-10-25T22:08:00.213Z",
+          "input_tokens": 110030,
+          "cached_input_tokens": 105728,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 556,
+          "reasoning_output_tokens": 164,
+          "total_tokens": 110586
+        },
+        {
+          "timestamp": "2026-10-25T22:08:02.283Z",
+          "input_tokens": 148295,
+          "cached_input_tokens": 143744,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 609,
+          "reasoning_output_tokens": 175,
+          "total_tokens": 148904
+        },
+        {
+          "timestamp": "2026-10-25T22:08:15.384Z",
+          "input_tokens": 186706,
+          "cached_input_tokens": 181888,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1029,
+          "reasoning_output_tokens": 208,
+          "total_tokens": 187735
+        },
+        {
+          "timestamp": "2026-10-25T22:08:18.351Z",
+          "input_tokens": 225561,
+          "cached_input_tokens": 220544,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 1103,
+          "reasoning_output_tokens": 208,
+          "total_tokens": 226664
+        }
+      ],
+      "tool_call_count": 5,
+      "command_audit_sha256": "f40328341b9924f72a13f26d5994c321d80efd0fbbfdfd6ea538373bab92302b"
+    }
+  ]
+}

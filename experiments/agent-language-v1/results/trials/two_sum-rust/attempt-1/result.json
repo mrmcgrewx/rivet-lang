@@ -1,0 +1,142 @@
+{
+  "trial": "two_sum-rust",
+  "attempt": 1,
+  "passed": true,
+  "submitted_unix_ns": 1792966079134885000,
+  "files": {
+    "solution.rs": "dd8c87f542d670727cf948d57e0d0121ae4ceba0cb3fd1e0469737ccf01d9f3e"
+  },
+  "build": {
+    "ok": true,
+    "logs": [
+      {
+        "command": [
+          "rustc",
+          "--edition=2024",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "lto=off",
+          "-F",
+          "unsafe_code",
+          "-D",
+          "warnings",
+          "--crate-name",
+          "solution",
+          "--crate-type",
+          "rlib",
+          "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/two_sum-rust/attempt-1/solver.rs",
+          "-o",
+          "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/two_sum-rust/attempt-1/libsolution.rlib"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ns": 474811916
+      },
+      {
+        "command": [
+          "rustc",
+          "--edition=2024",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "lto=off",
+          "-F",
+          "unsafe_code",
+          "-D",
+          "warnings",
+          "--cfg",
+          "task=\"two_sum\"",
+          "/Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/harness/driver.rs",
+          "--extern",
+          "solution=/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/two_sum-rust/attempt-1/libsolution.rlib",
+          "-o",
+          "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/two_sum-rust/attempt-1/program"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ns": 377675167
+      }
+    ],
+    "executable": "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/two_sum-rust/attempt-1/program",
+    "executable_bytes": 494344
+  },
+  "development": {
+    "passed": 10,
+    "total": 10,
+    "executed": 10,
+    "cases": [
+      {
+        "index": 0,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 217249625
+      },
+      {
+        "index": 1,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3842000
+      },
+      {
+        "index": 2,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3288458
+      },
+      {
+        "index": 3,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2855000
+      },
+      {
+        "index": 4,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2961958
+      },
+      {
+        "index": 5,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3051791
+      },
+      {
+        "index": 6,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2843666
+      },
+      {
+        "index": 7,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3001792
+      },
+      {
+        "index": 8,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2909083
+      },
+      {
+        "index": 9,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3587459
+      }
+    ],
+    "ok": true
+  }
+}

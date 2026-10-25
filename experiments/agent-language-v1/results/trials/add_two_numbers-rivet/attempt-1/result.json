@@ -1,0 +1,100 @@
+{
+  "trial": "add_two_numbers-rivet",
+  "attempt": 1,
+  "passed": true,
+  "submitted_unix_ns": 1792966187320275000,
+  "files": {
+    "solution.rvb": "02b51f34566b39371e5165913cffb1a77b6e8b46488a253d9ad7ff5737c3919b",
+    "write_solution.py": "090eb8984516aebd10968e6483d45110a16a4141545b5dac99bd42c3cee6ccd2"
+  },
+  "build": {
+    "ok": true,
+    "logs": [
+      {
+        "command": [
+          "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/rivet-frozen",
+          "build",
+          "/Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/results/trials/add_two_numbers-rivet/attempt-1/solution.rvb",
+          "-o",
+          "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/add_two_numbers-rivet/attempt-1/program",
+          "--profile",
+          "speed"
+        ],
+        "exit_code": 0,
+        "stdout": "Executable: /Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/add_two_numbers-rivet/attempt-1/program\nLLVM IR: /Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/add_two_numbers-rivet/attempt-1/program.ll\nAssembly: /Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/add_two_numbers-rivet/attempt-1/program.s\nBuild metadata: /Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/add_two_numbers-rivet/attempt-1/program.build.json\n34920 bytes \u00b7 arm64-apple-darwin25.5.0 \u00b7 296 ms\n",
+        "stderr": "",
+        "elapsed_ns": 301299584
+      }
+    ],
+    "executable": "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/add_two_numbers-rivet/attempt-1/program",
+    "executable_bytes": 34920
+  },
+  "development": {
+    "passed": 10,
+    "total": 10,
+    "executed": 10,
+    "cases": [
+      {
+        "index": 0,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 215992333
+      },
+      {
+        "index": 1,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3228042
+      },
+      {
+        "index": 2,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2699708
+      },
+      {
+        "index": 3,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2615250
+      },
+      {
+        "index": 4,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2919750
+      },
+      {
+        "index": 5,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3025333
+      },
+      {
+        "index": 6,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2792041
+      },
+      {
+        "index": 7,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3039292
+      },
+      {
+        "index": 8,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3108084
+      },
+      {
+        "index": 9,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2991083
+      }
+    ],
+    "ok": true
+  }
+}

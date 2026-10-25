@@ -1,0 +1,142 @@
+{
+  "trial": "median-rust",
+  "attempt": 1,
+  "passed": true,
+  "submitted_unix_ns": 1792966264120343000,
+  "files": {
+    "solution.rs": "7d299c967d816f7499a86657ef9fd212b2deb63ed6201c004c350aff50baebcf"
+  },
+  "build": {
+    "ok": true,
+    "logs": [
+      {
+        "command": [
+          "rustc",
+          "--edition=2024",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "lto=off",
+          "-F",
+          "unsafe_code",
+          "-D",
+          "warnings",
+          "--crate-name",
+          "solution",
+          "--crate-type",
+          "rlib",
+          "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/median-rust/attempt-1/solver.rs",
+          "-o",
+          "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/median-rust/attempt-1/libsolution.rlib"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ns": 76707708
+      },
+      {
+        "command": [
+          "rustc",
+          "--edition=2024",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "lto=off",
+          "-F",
+          "unsafe_code",
+          "-D",
+          "warnings",
+          "--cfg",
+          "task=\"median\"",
+          "/Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/harness/driver.rs",
+          "--extern",
+          "solution=/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/median-rust/attempt-1/libsolution.rlib",
+          "-o",
+          "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/median-rust/attempt-1/program"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ns": 300549583
+      }
+    ],
+    "executable": "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/median-rust/attempt-1/program",
+    "executable_bytes": 511048
+  },
+  "development": {
+    "passed": 10,
+    "total": 10,
+    "executed": 10,
+    "cases": [
+      {
+        "index": 0,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 268207458
+      },
+      {
+        "index": 1,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3682292
+      },
+      {
+        "index": 2,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3252125
+      },
+      {
+        "index": 3,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3027458
+      },
+      {
+        "index": 4,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3849042
+      },
+      {
+        "index": 5,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3496250
+      },
+      {
+        "index": 6,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3731084
+      },
+      {
+        "index": 7,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3375000
+      },
+      {
+        "index": 8,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3599834
+      },
+      {
+        "index": 9,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3480875
+      }
+    ],
+    "ok": true
+  }
+}

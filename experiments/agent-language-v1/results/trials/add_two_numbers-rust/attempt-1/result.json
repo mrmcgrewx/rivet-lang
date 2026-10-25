@@ -1,0 +1,142 @@
+{
+  "trial": "add_two_numbers-rust",
+  "attempt": 1,
+  "passed": true,
+  "submitted_unix_ns": 1792966162058199000,
+  "files": {
+    "solution.rs": "0290d8c31846822280e19cf7373055ceb09fa00005a18b3f26618471ff51e5d4"
+  },
+  "build": {
+    "ok": true,
+    "logs": [
+      {
+        "command": [
+          "rustc",
+          "--edition=2024",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "lto=off",
+          "-F",
+          "unsafe_code",
+          "-D",
+          "warnings",
+          "--crate-name",
+          "solution",
+          "--crate-type",
+          "rlib",
+          "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/add_two_numbers-rust/attempt-1/solver.rs",
+          "-o",
+          "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/add_two_numbers-rust/attempt-1/libsolution.rlib"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ns": 75749708
+      },
+      {
+        "command": [
+          "rustc",
+          "--edition=2024",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "overflow-checks=yes",
+          "-C",
+          "panic=abort",
+          "-C",
+          "lto=off",
+          "-F",
+          "unsafe_code",
+          "-D",
+          "warnings",
+          "--cfg",
+          "task=\"add_two_numbers\"",
+          "/Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/harness/driver.rs",
+          "--extern",
+          "solution=/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/add_two_numbers-rust/attempt-1/libsolution.rlib",
+          "-o",
+          "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/add_two_numbers-rust/attempt-1/program"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ns": 336669250
+      }
+    ],
+    "executable": "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/add_two_numbers-rust/attempt-1/program",
+    "executable_bytes": 492504
+  },
+  "development": {
+    "passed": 10,
+    "total": 10,
+    "executed": 10,
+    "cases": [
+      {
+        "index": 0,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 219213542
+      },
+      {
+        "index": 1,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 4128708
+      },
+      {
+        "index": 2,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3475250
+      },
+      {
+        "index": 3,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3201375
+      },
+      {
+        "index": 4,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2947917
+      },
+      {
+        "index": 5,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3367833
+      },
+      {
+        "index": 6,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3178958
+      },
+      {
+        "index": 7,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3139208
+      },
+      {
+        "index": 8,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2975250
+      },
+      {
+        "index": 9,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2899416
+      }
+    ],
+    "ok": true
+  }
+}

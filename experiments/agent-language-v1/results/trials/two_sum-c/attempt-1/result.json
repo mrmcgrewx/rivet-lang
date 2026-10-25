@@ -1,0 +1,107 @@
+{
+  "trial": "two_sum-c",
+  "attempt": 1,
+  "passed": true,
+  "submitted_unix_ns": 1792966107685183000,
+  "files": {
+    "solution.c": "378da8e8a2a7b61ed38d7d0647351923706b6699a0169916eb818fedb5ecdba2"
+  },
+  "build": {
+    "ok": true,
+    "logs": [
+      {
+        "command": [
+          "clang",
+          "-std=c11",
+          "-O3",
+          "-Wall",
+          "-Wextra",
+          "-Werror",
+          "-pedantic",
+          "-DTASK=1",
+          "-I",
+          "/Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/harness",
+          "/Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/harness/driver.c",
+          "/Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/harness/c_backend.c",
+          "/Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/results/trials/two_sum-c/attempt-1/solution.c",
+          "-o",
+          "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/two_sum-c/attempt-1/program"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ns": 141842042
+      }
+    ],
+    "executable": "/Users/kylemcgrew/code/ai_language/.rivet/agent-language-v1/builds/two_sum-c/attempt-1/program",
+    "executable_bytes": 34840
+  },
+  "development": {
+    "passed": 10,
+    "total": 10,
+    "executed": 10,
+    "cases": [
+      {
+        "index": 0,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 209929000
+      },
+      {
+        "index": 1,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3419125
+      },
+      {
+        "index": 2,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3002084
+      },
+      {
+        "index": 3,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2664750
+      },
+      {
+        "index": 4,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2827625
+      },
+      {
+        "index": 5,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2654792
+      },
+      {
+        "index": 6,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2703166
+      },
+      {
+        "index": 7,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 2838167
+      },
+      {
+        "index": 8,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 3239000
+      },
+      {
+        "index": 9,
+        "ok": true,
+        "exit_code": 0,
+        "elapsed_ns": 7138417
+      }
+    ],
+    "ok": true
+  }
+}

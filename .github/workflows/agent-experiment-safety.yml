@@ -1,0 +1,14 @@
+name: Agent experiment C safety
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  c-sanitizers:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Check frozen C submissions with AddressSanitizer and UBSan
+        run: python3 experiments/agent-language-v1/sanitizer_check.py --output .rivet/agent-experiment-asan.json
+      - name: Preserve machine-readable checks in the log
+        if: always()
+        run: cat .rivet/agent-experiment-asan.json

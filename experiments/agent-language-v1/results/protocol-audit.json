@@ -1,0 +1,186 @@
+{
+  "scope": "manual review of command-only records plus immutable sources; procedural isolation, not OS enforcement",
+  "trials": [
+    {
+      "id": "add_two_numbers-c",
+      "tool_call_count": 5,
+      "nested_tools": [
+        "apply_patch",
+        "exec_command"
+      ],
+      "command_opening_lines": [
+        "pwd && rg --files -g 'AGENTS.md' -g 'TASK.md' -g 'CONTRACT.md' -g 'API.md' -g '*.h' -g '*REFERENCE*' .",
+        "cat AGENTS.md TASK.md CONTRACT.md API.md api.h",
+        "python3 /Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/grade.py submit /private/tmp/rivet-authoring-pilot-k2ijvu9_/add_two_numbers-c"
+      ],
+      "patch_targets": [
+        "/private/tmp/rivet-authoring-pilot-k2ijvu9_/add_two_numbers-c/solution.c",
+        "/private/tmp/rivet-authoring-pilot-k2ijvu9_/add_two_numbers-c/HANDOFF.md"
+      ],
+      "command_audit_sha256": "3e19caa6b2d695c58dc9302e65bd3e323cab3b4d19b32b5b7862245821ac31fd",
+      "manual_command_scope_review": "passed; only packet reads, owned source/handoff edits, Rivet byte generation, one formal submit, and submission polling",
+      "manual_solver_review": "passed; domain-general algorithm, required complexity and representation; no runtime solver hidden in byte writer"
+    },
+    {
+      "id": "add_two_numbers-rivet",
+      "tool_call_count": 5,
+      "nested_tools": [
+        "exec_command"
+      ],
+      "command_opening_lines": [
+        "cat AGENTS.md TASK.md CONTRACT.md API.md",
+        "cat RVB2.md",
+        "cat > write_solution.py <<'PY'",
+        "python3 write_solution.py",
+        "python3 /Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/grade.py submit /private/tmp/rivet-authoring-pilot-k2ijvu9_/add_two_numbers-rivet",
+        "cat > HANDOFF.md <<'MD'"
+      ],
+      "patch_targets": [],
+      "command_audit_sha256": "d0b516b21fe4a0b42a5df7bad58c14f78a5e03202d6eb711d02df637951baf1e",
+      "manual_command_scope_review": "passed; only packet reads, owned source/handoff edits, Rivet byte generation, one formal submit, and submission polling",
+      "manual_solver_review": "passed; domain-general algorithm, required complexity and representation; no runtime solver hidden in byte writer"
+    },
+    {
+      "id": "add_two_numbers-rust",
+      "tool_call_count": 4,
+      "nested_tools": [
+        "apply_patch",
+        "exec_command"
+      ],
+      "command_opening_lines": [
+        "pwd && cat AGENTS.md TASK.md CONTRACT.md API.md",
+        "python3 /Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/grade.py submit /private/tmp/rivet-authoring-pilot-k2ijvu9_/add_two_numbers-rust"
+      ],
+      "patch_targets": [
+        "/private/tmp/rivet-authoring-pilot-k2ijvu9_/add_two_numbers-rust/solution.rs",
+        "/private/tmp/rivet-authoring-pilot-k2ijvu9_/add_two_numbers-rust/HANDOFF.md"
+      ],
+      "command_audit_sha256": "11c14856d7f8a600b7602606f56a177261e85b9a7b87e19852c5553439e66d91",
+      "manual_command_scope_review": "passed; only packet reads, owned source/handoff edits, Rivet byte generation, one formal submit, and submission polling",
+      "manual_solver_review": "passed; domain-general algorithm, required complexity and representation; no runtime solver hidden in byte writer"
+    },
+    {
+      "id": "median-c",
+      "tool_call_count": 5,
+      "nested_tools": [
+        "apply_patch",
+        "exec_command"
+      ],
+      "command_opening_lines": [
+        "pwd && ls -la && cat AGENTS.md TASK.md CONTRACT.md API.md",
+        "cat api.h",
+        "python3 /Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/grade.py submit /private/tmp/rivet-authoring-pilot-k2ijvu9_/median-c"
+      ],
+      "patch_targets": [
+        "/private/tmp/rivet-authoring-pilot-k2ijvu9_/median-c/solution.c",
+        "/private/tmp/rivet-authoring-pilot-k2ijvu9_/median-c/HANDOFF.md"
+      ],
+      "command_audit_sha256": "62bac3f1cc2acd8f4b04d882db4ffed0cf2ebe802c0c33f5bd9e3cb4dd1a86d6",
+      "manual_command_scope_review": "passed; only packet reads, owned source/handoff edits, Rivet byte generation, one formal submit, and submission polling",
+      "manual_solver_review": "passed; domain-general algorithm, required complexity and representation; no runtime solver hidden in byte writer"
+    },
+    {
+      "id": "median-rivet",
+      "tool_call_count": 5,
+      "nested_tools": [
+        "exec_command"
+      ],
+      "command_opening_lines": [
+        "pwd && cat AGENTS.md TASK.md CONTRACT.md API.md",
+        "cat RVB2.md",
+        "cat > solution.py <<'PY'",
+        "python3 /Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/grade.py submit /private/tmp/rivet-authoring-pilot-k2ijvu9_/median-rivet",
+        "cat > HANDOFF.md <<'MD'"
+      ],
+      "patch_targets": [],
+      "command_audit_sha256": "24b1bebe9c11394f19f56dfe48640036dde2f82799966246bd01a47efc73a213",
+      "manual_command_scope_review": "passed; only packet reads, owned source/handoff edits, Rivet byte generation, one formal submit, and submission polling",
+      "manual_solver_review": "passed; domain-general algorithm, required complexity and representation; no runtime solver hidden in byte writer"
+    },
+    {
+      "id": "median-rust",
+      "tool_call_count": 4,
+      "nested_tools": [
+        "apply_patch",
+        "exec_command"
+      ],
+      "command_opening_lines": [
+        "cat AGENTS.md TASK.md CONTRACT.md API.md",
+        "python3 /Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/grade.py submit /private/tmp/rivet-authoring-pilot-k2ijvu9_/median-rust"
+      ],
+      "patch_targets": [
+        "/private/tmp/rivet-authoring-pilot-k2ijvu9_/median-rust/solution.rs",
+        "/private/tmp/rivet-authoring-pilot-k2ijvu9_/median-rust/HANDOFF.md"
+      ],
+      "command_audit_sha256": "3213e530188c338f05b22c96f24393f65ff66a6c7cfba1ece3cd4b0340991179",
+      "manual_command_scope_review": "passed; only packet reads, owned source/handoff edits, Rivet byte generation, one formal submit, and submission polling",
+      "manual_solver_review": "passed; domain-general algorithm, required complexity and representation; no runtime solver hidden in byte writer"
+    },
+    {
+      "id": "two_sum-c",
+      "tool_call_count": 5,
+      "nested_tools": [
+        "apply_patch",
+        "exec_command"
+      ],
+      "command_opening_lines": [
+        "cat AGENTS.md TASK.md CONTRACT.md API.md",
+        "cat api.h",
+        "python3 /Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/grade.py submit /private/tmp/rivet-authoring-pilot-k2ijvu9_/two_sum-c"
+      ],
+      "patch_targets": [
+        "/private/tmp/rivet-authoring-pilot-k2ijvu9_/two_sum-c/solution.c",
+        "/private/tmp/rivet-authoring-pilot-k2ijvu9_/two_sum-c/HANDOFF.md"
+      ],
+      "command_audit_sha256": "e86a5d5d53c8e486d50739441d9c61d0fe147183f223de666b30fe71eaba71f2",
+      "manual_command_scope_review": "passed; only packet reads, owned source/handoff edits, Rivet byte generation, one formal submit, and submission polling",
+      "manual_solver_review": "passed; domain-general algorithm, required complexity and representation; no runtime solver hidden in byte writer"
+    },
+    {
+      "id": "two_sum-rivet",
+      "tool_call_count": 5,
+      "nested_tools": [
+        "apply_patch",
+        "exec_command"
+      ],
+      "command_opening_lines": [
+        "pwd && cat AGENTS.md TASK.md CONTRACT.md API.md",
+        "cat RVB2.md",
+        "python3 write_solution.py",
+        "python3 /Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/grade.py submit /private/tmp/rivet-authoring-pilot-k2ijvu9_/two_sum-rivet"
+      ],
+      "patch_targets": [
+        "/private/tmp/rivet-authoring-pilot-k2ijvu9_/two_sum-rivet/write_solution.py",
+        "/private/tmp/rivet-authoring-pilot-k2ijvu9_/two_sum-rivet/HANDOFF.md"
+      ],
+      "command_audit_sha256": "4a5fd7b540cd9fc2fc4f995400406b38d8016f25ef2b988de335e9921308e07d",
+      "manual_command_scope_review": "passed; only packet reads, owned source/handoff edits, Rivet byte generation, one formal submit, and submission polling",
+      "manual_solver_review": "passed; domain-general algorithm, required complexity and representation; no runtime solver hidden in byte writer"
+    },
+    {
+      "id": "two_sum-rust",
+      "tool_call_count": 5,
+      "nested_tools": [
+        "apply_patch",
+        "exec_command",
+        "write_stdin"
+      ],
+      "command_opening_lines": [
+        "cat AGENTS.md TASK.md CONTRACT.md API.md",
+        "python3 /Users/kylemcgrew/code/ai_language/experiments/agent-language-v1/grade.py submit /private/tmp/rivet-authoring-pilot-k2ijvu9_/two_sum-rust"
+      ],
+      "patch_targets": [
+        "/private/tmp/rivet-authoring-pilot-k2ijvu9_/two_sum-rust/solution.rs",
+        "/private/tmp/rivet-authoring-pilot-k2ijvu9_/two_sum-rust/HANDOFF.md"
+      ],
+      "command_audit_sha256": "f40328341b9924f72a13f26d5994c321d80efd0fbbfdfd6ea538373bab92302b",
+      "manual_command_scope_review": "passed; only packet reads, owned source/handoff edits, Rivet byte generation, one formal submit, and submission polling",
+      "manual_solver_review": "passed; domain-general algorithm, required complexity and representation; no runtime solver hidden in byte writer"
+    }
+  ],
+  "complexity_and_representation": {
+    "two_sum": "All use complement lookup before insertion. C and Rivet use open addressing; Rust uses standard HashMap. Expected O(n) search, not a worst-case linear guarantee. C capacity scales to input; Rivet has a fixed 32768-slot general map.",
+    "add_two_numbers": "All traverse real linked nodes with carry. C/Rust append owned output nodes with O(1) auxiliary state. Rivet conses a temporary reversed chain then reverses it into new output nodes, adding O(k) temporary storage. All perform O(m+n) work.",
+    "median": "All use binary partition search with O(log(min(m,n)+2)) iterations and O(1) search storage. C lower-bound search loads fewer elements per iteration; Rust uses guarded two-direction search; Rivet clamps valid partition range and loads four boundary values. Input parsing is separate."
+  }
+}
