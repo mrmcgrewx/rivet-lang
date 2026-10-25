@@ -1,9 +1,11 @@
 # Project state
 
-State version: 16. Updated: 2026-10-25.
+State version: 17. Updated: 2026-10-25.
 Public repository: https://github.com/mrmcgrewx/rivet-lang
 
 ## Current objective and implementation
+
+Median of Two Sorted Arrays is the active milestone. `MEDIAN-PLAN.md` fixes the additive Float encoding, logarithmic binary-partition source, speed profile, comparison methodology and ownership before delegation. Implement reusable floating-point operations and compare runtime/memory with equivalent C/Python algorithms. Earlier milestones below remain complete. No new implementation or benchmark result is claimed at this planning checkpoint.
 
 Add Two Numbers is complete. Implementation `432cd26b4c4cf4a848d8b41695a54f681c4890c4` includes `examples/add-two-numbers.rvb`: 657 binary bytes and 70 operations over real linked nodes. Reusable typed copy, guarded division/remainder, assertions and list operations extend RVB2 without changing prior files. Native/reference/big-integer-oracle tests, generic list tests, C/UBSan, 16 browser scenarios and actual in-app runs passed. Independent review found no blocker; a fresh public clone passed all 85 Rust tests and 16 browser scenarios, and public CI succeeded. See `ADD-TWO-NUMBERS-VALIDATION.md`. `ADD-TWO-NUMBERS-PLAN.md` fixed the contract at `8a6b220`; `ROADMAP.md` records the user's broader agent-language/performance goal without claiming current competitiveness.
 
