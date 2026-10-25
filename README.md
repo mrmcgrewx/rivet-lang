@@ -2,7 +2,7 @@
 
 A small, experimental typed dataflow language with a Rust compiler/interpreter and a local browser workbench. Programs compile to indexed register instructions; their values determine both console output and HTTP responses.
 
-**In development:** implementation and acceptance verification are underway. See [project state](docs/STATE.md) for completed milestones and evidence.
+**Both MVPs are complete and verified** on macOS arm64: Hello world through the UI and a program-defined local JSON HTTP server. A clean public checkout passed all 32 Rust tests and eight Chromium UI tests. See [validation evidence](docs/VALIDATION.md) and [milestone commits](docs/STATE.md).
 
 ## Run locally
 
@@ -63,7 +63,7 @@ npx playwright install chromium
 npm test
 ```
 
-The browser tests launch the local workbench automatically. See [validation evidence](docs/VALIDATION.md) for the actual test outcomes and clean-checkout procedure once verified.
+The browser tests launch the local workbench automatically. See [validation evidence](docs/VALIDATION.md) for the actual test outcomes and clean-checkout procedure.
 
 ## Language and architecture
 
@@ -81,6 +81,6 @@ Rust dependencies and their transitive versions are locked in `Cargo.lock`. `ser
 
 This is a straight-line experimental language, without loops, functions, branching, native code generation, persistence, or a package system. HTTP programs compute their responses at start time; request-dependent computation is future work. Both listeners bind to IPv4 loopback. The workbench is intended for one local user and retains one build and at most one program server in memory; downloaded program files preserve source, not live server state. Restarting the workbench clears its build history.
 
-The HTTP runtime is intentionally small: exact GET routes, JSON responses, and no TLS, authentication, streaming, or production deployment support. See the language contract for source, instruction, output, and route limits. The workbench checks Host/Origin and requires a custom JSON-request header for mutations; it does not grant cross-origin API access.
+The HTTP runtime is intentionally small: exact GET routes and JSON responses, one request per connection, sequential request handling, a two-second request read deadline, and no TLS, authentication, chunked request bodies, streaming, or production deployment support. See the language contract for source, instruction, output, and route limits. The workbench checks Host/Origin and requires a custom JSON-request header for mutations; it does not grant cross-origin API access.
 
 `cargo bench --locked --bench baseline` measures compilation, interpreter execution, and sequential local HTTP requests using the committed examples. It is a baseline experiment, not a claim of superiority to another language. Timing scope and actual results belong in the validation record.

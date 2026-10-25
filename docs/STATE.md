@@ -1,6 +1,6 @@
 # Project state
 
-State version: 3. Updated: 2026-10-25.
+State version: 4. Updated: 2026-10-25.
 
 Public repository: https://github.com/mrmcgrewx/rivet-lang
 
@@ -8,8 +8,8 @@ Public repository: https://github.com/mrmcgrewx/rivet-lang
 | --- | --- | --- |
 | Bootstrap | Complete | `efefdd1`, `eb4ef43` pushed before implementation; contracts `e4e6b01`, review ownership `72ca645` |
 | MVP 1: Hello world UI | Complete — `2730be7` | Typed IR, edited output, invalid-program diagnostics, automated and actual browser verification |
-| MVP 2: local HTTP server UI | Complete in this checkpoint | Actual start/repeated request/stop/edit/restart verified; screenshot captured |
-| Reproducibility and final handoff | In progress | Clean checkout, benchmark baseline, final documentation/push pending |
+| MVP 2: local HTTP server UI | Complete — `ce9e2ec` | Actual start/repeated request/stop/edit/restart verified; screenshot captured |
+| Reproducibility and final handoff | Complete | Clean clone of `ce9e2ec` passed setup/build/tests/release smoke; baseline recorded |
 
 ## Implemented
 
@@ -17,14 +17,19 @@ Rivet v1 is a typed single-assignment JSON representation compiled to private in
 
 The implementation contract, semantics, tests, and agent handoffs are committed project materials. The coordinator integrated all contributions. GitHub mutations use the established App helpers; credentials and private machine instructions are not stored here. Initial repository creation failed until the owner accepted updated App permissions, after which creation/push succeeded.
 
-## Validation and remaining work
+## Validation and completion
 
-See `docs/VALIDATION.md` for commands and current evidence, and `docs/REVIEW-HANDOFF.md` for resolved review findings. Current integrated checks: 32 Rust tests, 8 Chromium UI tests, formatting, and strict Clippy. Actual Hello UI verification includes edited output and invalid programs.
+See `docs/VALIDATION.md` for exact commands, clean-checkout evidence, screenshots, release smoke checks, CI links, and baseline measurements. Final implementation checks: 32 Rust tests, 8 Chromium UI tests, formatting, and strict Clippy all passed. Both actual UI flows include edited program behavior. The clean public clone at `ce9e2ec` was rebuilt and tested without copied build outputs. Final completion updates are documentation/evidence only.
 
-1. Both actual UI milestones are verified; see the complete procedure and screenshots in `docs/VALIDATION.md`.
-2. Push milestone acceptance, clone the public repository into a clean temporary checkout, and run documented setup/build/test instructions there.
-3. Record a measured efficiency baseline without comparative performance claims.
-4. Finalize README/validation/state with milestone references and clean-checkout outcomes; push and verify final remote commit and CI.
+Milestone references:
+
+- Brief/bootstrap: `efefdd1` and `eb4ef43`.
+- Language/API/ownership contract: `e4e6b01`; independent review assignment: `72ca645`.
+- Implementation and Hello world UI acceptance: `2730be7`.
+- HTTP UI acceptance: `ce9e2ec`.
+- Final completion/clean-reproduction evidence: the commit containing this state version (see `git log -1`).
+
+No required MVP work remains. Future extensions such as request-dependent values, branching/functions, persistence, richer editing, and broader platform support are optional new work and should start with a semantics/acceptance update. Current implementation ownership is historical guidance; review contracts and tests before extending it.
 
 ## Material limitations
 

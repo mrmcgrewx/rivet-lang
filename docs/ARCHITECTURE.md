@@ -1,16 +1,16 @@
-# Initial architecture
+# Architecture and decision record
 
-These are bootstrap decisions, not claims about an existing implementation. Commit the concrete language and module/API contracts before delegating implementation.
+The bootstrap rationale below led to the implemented design specified in `CONTRACT.md` and `LANGUAGE.md`. Both MVPs are complete; validation and current state are recorded separately. Historical alternatives are retained here where they explain the implementation.
 
 ## Target
 
 Start on macOS arm64 with Rust 1.90.0 and a browser UI served by the local executable. This target runs on the development machine without a VM, cross compiler, or native app distribution. Keep the core portable where practical; other platforms are unverified until tested.
 
-## Proposed compiler and execution path
+## Compiler and execution path
 
 Use a small, versioned, typed program representation with an explicit validation stage and a distinct executable intermediate form. Rust owns parsing, validation/lowering, and execution. Define output and HTTP response operations as language/runtime capabilities. Include enough value composition to show computation and verify that program edits propagate through compilation to execution.
 
-The final syntax, types, operations, and artifact format remain to be specified before implementation. Prefer explicit semantics and diagnostic locations over a broad syntax. Initially use a bytecode/intermediate-form interpreter; a native backend would add toolchain complexity before either required demonstration is complete.
+The final v1 serialization is JSON, with seven typed operations and console/HTTP entries. The compiler resolves named operands to private typed register indices and emits an inspectable textual disassembly. Execution uses that validated IR. Artifacts are in memory; source is the versioned portable program format. A native backend was deferred because it would add toolchain complexity without helping establish either required demonstration.
 
 ## Workbench
 
@@ -20,7 +20,7 @@ The workbench service and program HTTP service should have separate lifecycles. 
 
 ## Dependencies and performance
 
-Pin the Rust toolchain and commit dependency lockfiles. Choose minimal maintained parsing/serialization/networking dependencies during interface design and document their purpose. No dependencies have been selected yet.
+Rust 1.90.0 is pinned, and Cargo/npm lockfiles record exact dependencies. serde/serde_json handle representation decoding and JSON output; httparse parses bounded HTTP headers; ctrlc handles shutdown signals. Native HTML/CSS/JS requires no production frontend dependency. Playwright is a development-only test dependency.
 
 For efficiency evaluation, first define a repeatable release-build benchmark on the documented target: compile a fixed program and execute its non-network computation repeatedly; separately measure local HTTP request latency. Record workload, iteration count, timing scope, and build mode. Initial measurements establish a baseline only, with no comparison to mature languages implied.
 
