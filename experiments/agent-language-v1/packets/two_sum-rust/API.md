@@ -1,0 +1,1 @@
+Write solution.rs containing `pub fn solve(nums: &[i64], target: i64) -> (usize, usize)` and any private helpers. Standard library only, safe Rust; no main, stdin/stdout, process control, or file access. Rust1.90, edition2024, opt-level=3, overflow-checks=yes, panic=abort, lto=off, forbid unsafe_code, deny warnings. Coordinator supplies a separate rlib entry wrapper.

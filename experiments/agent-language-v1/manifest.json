@@ -1,0 +1,84 @@
+{
+  "format": 1,
+  "expected_model": "gpt-6-astra",
+  "expected_effort": "xhigh",
+  "compiler_sha256": "f5f2390119f8091fbbf1b7a3b49b51440a9e23b5abff99e106f4e6034d3bf83a",
+  "files": {
+    "experiments/agent-language-v1/corpora.json": "6e217833e3c13d80b40cb61eebecdfcee1f35b5d7670ff15216fe371cd7d7a4d",
+    "experiments/agent-language-v1/protocol.py": "20ab3ade4f662dc5fa36b560a121a5d497ddc4637be9f0eb55a277c509ebd9a9",
+    "experiments/agent-language-v1/grade.py": "7ed777e99069d60b23683ffc075908ee2f92d371def78502d323098152aa5017",
+    "experiments/agent-language-v1/prepare.py": "4e528448c895d660a9668dacb33ebf2f7c6fa3f5ad3cab54e720b450c7bb8859",
+    "experiments/agent-language-v1/preloaded.py": "18a8ce7e9b528201e0aef9984ce09644f70d2c07b369e7f39bd496b14bccacd3",
+    "experiments/agent-language-v1/test_harness.py": "e18f89bad7b3af2597517ff2e024d29830b1bb0071d759a4a492dee70c20191d",
+    "experiments/agent-language-v1/harness/api.h": "abf9187d3f02fcdb4c734b183c0b3f39ef80a7cf002024012abc50420cfd0a12",
+    "experiments/agent-language-v1/harness/backend.h": "80af279b523c51a28a6b15b32724439c0436145e7f5aa511100741b238c2ce54",
+    "experiments/agent-language-v1/harness/c_backend.c": "04d75e37260c3d3a40539993c6904781fdacd573282768542351851570bd671b",
+    "experiments/agent-language-v1/harness/driver.c": "60dbd9d74c11bb39c3346d6f5f9688b4e52c90c807ada4e7f171e52f41124b6f",
+    "experiments/agent-language-v1/harness/driver.rs": "9c1ab54a59f08283d7de04c77e1a3affbac444f51c09a8be7a14421f8d282ff5",
+    "experiments/agent-language-v1/harness/rivet_backend.c": "b5673558c012e422ba285ae0eb87c005d2597bb2ad3e830909ad4185e2bfbd82",
+    "native/runtime.c": "72f0ab861c86a46e1f49a115ef0efe14017215375e47bc5154622ab744153083",
+    "native/runtime.h": "489229ddfa36b9dcb3b5af39691f2349293254e7ee931abe2bcbdd921c488831"
+  },
+  "packets": {
+    "two_sum-rivet": {
+      "AGENTS.md": "6015c2f16e34370f02033aecf2e46384eb0dcf469511798dd3e5584088d6177b",
+      "API.md": "d120b0b6db7f810b444112b7fce1c332beca24e21ac8dd6e763500a506241c66",
+      "CONTRACT.md": "fa8247bcc1506dedd7cc56552c2ff9e2e5d61b19e4eb2a95ce49bc39d50b3005",
+      "RVB2.md": "60a128916141dbdf491a8e5f8617ca3c483c5266310439a8e7e1cadaf3d8c378",
+      "TASK.md": "7751b09015e0f87c56a6c7ae504600c1ae7b8d67794d382a18949626224c1240"
+    },
+    "two_sum-c": {
+      "AGENTS.md": "6015c2f16e34370f02033aecf2e46384eb0dcf469511798dd3e5584088d6177b",
+      "API.md": "949e908105d300d8d0d1310b0aeab8b58c689525696d2d2574fa7988e8917640",
+      "CONTRACT.md": "fa8247bcc1506dedd7cc56552c2ff9e2e5d61b19e4eb2a95ce49bc39d50b3005",
+      "TASK.md": "f6a6c9fc07fefe3f94eb9c0924787719d3777a7e69b3fc1c0672a6039fab0b27",
+      "api.h": "abf9187d3f02fcdb4c734b183c0b3f39ef80a7cf002024012abc50420cfd0a12"
+    },
+    "two_sum-rust": {
+      "AGENTS.md": "6015c2f16e34370f02033aecf2e46384eb0dcf469511798dd3e5584088d6177b",
+      "API.md": "466eb1ae022fe9930a2bdf0317b53c4a334093e2c70c5f1bab5fe0818fc2b017",
+      "CONTRACT.md": "fa8247bcc1506dedd7cc56552c2ff9e2e5d61b19e4eb2a95ce49bc39d50b3005",
+      "TASK.md": "7adc9cbee2ffaf13249ccbfbb27b2b96624ff311154646e6ae34f742fd809649"
+    },
+    "add_two_numbers-rivet": {
+      "AGENTS.md": "6015c2f16e34370f02033aecf2e46384eb0dcf469511798dd3e5584088d6177b",
+      "API.md": "d120b0b6db7f810b444112b7fce1c332beca24e21ac8dd6e763500a506241c66",
+      "CONTRACT.md": "fa8247bcc1506dedd7cc56552c2ff9e2e5d61b19e4eb2a95ce49bc39d50b3005",
+      "RVB2.md": "60a128916141dbdf491a8e5f8617ca3c483c5266310439a8e7e1cadaf3d8c378",
+      "TASK.md": "ccdec66e7b32685d5ddadc0d06dde6b2fe4812ae9299c0d682f257ac037d0f8b"
+    },
+    "add_two_numbers-c": {
+      "AGENTS.md": "6015c2f16e34370f02033aecf2e46384eb0dcf469511798dd3e5584088d6177b",
+      "API.md": "949e908105d300d8d0d1310b0aeab8b58c689525696d2d2574fa7988e8917640",
+      "CONTRACT.md": "fa8247bcc1506dedd7cc56552c2ff9e2e5d61b19e4eb2a95ce49bc39d50b3005",
+      "TASK.md": "b68a83b497372a326240e843e8f9ff90da1da786aace077601ac20a0d7d1d3ad",
+      "api.h": "abf9187d3f02fcdb4c734b183c0b3f39ef80a7cf002024012abc50420cfd0a12"
+    },
+    "add_two_numbers-rust": {
+      "AGENTS.md": "6015c2f16e34370f02033aecf2e46384eb0dcf469511798dd3e5584088d6177b",
+      "API.md": "622d6427f7ac000702d5df6561033f12a0064f7202f8c0c12cc6884c41471b05",
+      "CONTRACT.md": "fa8247bcc1506dedd7cc56552c2ff9e2e5d61b19e4eb2a95ce49bc39d50b3005",
+      "TASK.md": "0f8c64babfa761bddb3e1f04fcccd681b8d53d8678875f7ad62c8060906136ef"
+    },
+    "median-rivet": {
+      "AGENTS.md": "6015c2f16e34370f02033aecf2e46384eb0dcf469511798dd3e5584088d6177b",
+      "API.md": "d120b0b6db7f810b444112b7fce1c332beca24e21ac8dd6e763500a506241c66",
+      "CONTRACT.md": "fa8247bcc1506dedd7cc56552c2ff9e2e5d61b19e4eb2a95ce49bc39d50b3005",
+      "RVB2.md": "60a128916141dbdf491a8e5f8617ca3c483c5266310439a8e7e1cadaf3d8c378",
+      "TASK.md": "e52fd9e4a7597482b9dbcdc4d7d561d42ff87969b5f4e02406bf65283e72a585"
+    },
+    "median-c": {
+      "AGENTS.md": "6015c2f16e34370f02033aecf2e46384eb0dcf469511798dd3e5584088d6177b",
+      "API.md": "949e908105d300d8d0d1310b0aeab8b58c689525696d2d2574fa7988e8917640",
+      "CONTRACT.md": "fa8247bcc1506dedd7cc56552c2ff9e2e5d61b19e4eb2a95ce49bc39d50b3005",
+      "TASK.md": "e9c800a3644cbacfd1befd897bb1118e14f443ec91b1c8d253cbb4f9b8cb88ff",
+      "api.h": "abf9187d3f02fcdb4c734b183c0b3f39ef80a7cf002024012abc50420cfd0a12"
+    },
+    "median-rust": {
+      "AGENTS.md": "6015c2f16e34370f02033aecf2e46384eb0dcf469511798dd3e5584088d6177b",
+      "API.md": "01fd03dc92f705d7948ed023d0893159cdaea1bde564a2b3d8efece71ff9dc2d",
+      "CONTRACT.md": "fa8247bcc1506dedd7cc56552c2ff9e2e5d61b19e4eb2a95ce49bc39d50b3005",
+      "TASK.md": "efe20ff03bd057e6824e7e7928f5a39e17dd01c9c275337cf6009b15e9e2f536"
+    }
+  }
+}
