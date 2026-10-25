@@ -20,3 +20,5 @@ Read `docs/ADD-TWO-NUMBERS-PLAN.md` for the additive linked-list/copy/arithmetic
 Read `docs/MEDIAN-PLAN.md` for the floating-point, median, speed-profile and comparison contract. Benchmark-only boundary substitutions must remain outside production code; preserve runtime checks and report timing/memory scopes precisely.
 
 Read `docs/NATIVE-OPTIMIZATION-PLAN.md` before optimizing native computation. Preserve exact source fuel/failure behavior and compare unchanged benchmark inputs and baselines; record new optimization interfaces before delegation.
+
+Controlled authoring workers for `docs/AGENT-EXPERIMENT-PLAN.md` are an explicit exception to the broad project-document reads above: read only the experiment contract and assigned isolated packet, and remain within that packet's scope. Do not inspect prior solutions or project history. The coordinator retains the normal documentation/integration/Git responsibilities.

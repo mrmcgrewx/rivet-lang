@@ -1,9 +1,11 @@
 # Project state
 
-State version: 22. Updated: 2026-10-25.
+State version: 23. Updated: 2026-10-25.
 Public repository: https://github.com/mrmcgrewx/rivet-lang
 
 ## Current objective and implementation
+
+Active work: same-model agent-authoring pilot across Rivet, C and Rust on Two Sum, Add Two Numbers and Median. `AGENT-EXPERIMENT-PLAN.md` fixes fresh-context isolation, three formal submissions, independent withheld tests, actual session token counters and separate process/preloaded runtime/RSS scopes. Freeze the harness and corpora before trials; preserve unsuccessful submissions and do not coach or repair workers. No new authoring or comparative-performance conclusion is claimed yet.
 
 Native fuel optimization is complete at implementation `c279276de3866f1e918fc8394900abde62208b1c`. `NATIVE-OPTIMIZATION-PLAN.md` fixed ownership and the unchanged comparison contract at `51745ac`. The same counter/check is visible to LLVM, backed by the unchanged C tick and a stable-address getter; all safety limits and failure ordering remain. Clean before/after default benchmarks measured **559.45 → 104.14 ns/query (5.37×)** on balanced 1000 + 1000 inputs, narrowing C's advantage from 16.15× to **3.02×**. All eight families improved 4.56×–5.57×. Balanced standalone peak RSS stayed at 1.406 MiB; the speed executable grew by 16 bytes and median native build time by 22 ms. `NATIVE-OPTIMIZATION-RESULTS.md` preserves scopes, raw reports and remaining gaps. A fresh public checkout passed all 100 Rust tests, strict C/UBSan and 18 browser scenarios; actual UI and independent review passed. Public CI run `40235678882` succeeded. See `NATIVE-OPTIMIZATION-VALIDATION.md`.
 
